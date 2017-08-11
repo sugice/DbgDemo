@@ -1,5 +1,11 @@
 #pragma once
 #include <windows.h>
+#include <list>
+#include "TfBp.h"
+using std::list;
+
+#define NUMOFBPTYPE 3
+
 class CDbgEngine {
 public:
 #define MAX_INPUT 1024   // 控制台命令最大长度
@@ -33,8 +39,6 @@ public:
 	// 等待用户输入调试命令
 	DWORD WaitforUserCommand();
 	// 用户命令
-	// t命令
-	void UserCommandStepInto();
 	// b命令
 	void UserCommandB(CHAR* pCommand);
 
@@ -50,5 +54,9 @@ private:
 	// 调试信息***!!指针!!****
 	// 新一次的调试循环开始的时候重新赋值
 	LPDEBUG_EVENT m_pDbgEvt;
+private:
+	list<DWORD> m_bpAddrList[NUMOFBPTYPE];//保存主动设置的断点地址和断点类型的list
+	CTfBp* m_pTfBp;//设置单步断点的类对象指针
+	BOOL isSystemBp;
 };
 

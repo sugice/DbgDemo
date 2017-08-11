@@ -10,11 +10,16 @@
 /*******************************/
 #include <strsafe.h>
 
-CDbgEngine::CDbgEngine() {
+CDbgEngine::CDbgEngine() 
+	:isSystemBp(TRUE)
+{
+	m_pTfBp = new CTfBp;
 }
 
 
 CDbgEngine::~CDbgEngine() {
+	delete m_pTfBp;
+	m_pTfBp = NULL;
 }
 
 
@@ -24,7 +29,7 @@ CDbgEngine::~CDbgEngine() {
 //************************************
 void CDbgEngine::DebugMain() {
 	//1.1	调试方式打开程序
-	WCHAR szPath[] = L"D:\\桌面文档\\123.exe";
+	WCHAR szPath[] = L"CrackMe3.exe";
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
 	BOOL bStatus = CreateProcess(szPath, NULL, NULL, NULL, FALSE,
 		DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS | CREATE_NEW_CONSOLE,	//调试新建进程 | 拥有新控制台,不继承其父级控制台（默认）
@@ -60,10 +65,7 @@ DWORD CDbgEngine::DispatchDbgEvent(DEBUG_EVENT& de) {
 		dwRet = OnCreateProcess(de);
 		break;
 	case EXCEPTION_DEBUG_EVENT:			//异常调试，大部分时间都耗费在这了
-		// 是你设置的异常吗
-		// 是
 		dwRet = OnException(de);
-		// 否，注意第1次的ntdll int 3断点异常
 		break;
 	case CREATE_THREAD_DEBUG_EVENT:		//线程调试
 	case EXIT_THREAD_DEBUG_EVENT:		//退出线程
@@ -140,7 +142,14 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 	switch (de.u.Exception.ExceptionRecord.ExceptionCode) {
 		//软件断点
 	case EXCEPTION_BREAKPOINT:
-		dwRet = OnExceptionCc(de);
+	{
+		if (isSystemBp)
+		{
+			isSystemBp = FALSE;//用于判断第一个软件断点是系统断点
+			dwRet = OnExceptionCc(de);
+		}
+
+	}
 		break;
 		//单步异常
 	case EXCEPTION_SINGLE_STEP:
@@ -202,9 +211,9 @@ DWORD CDbgEngine::OnExceptionAccess(DEBUG_EVENT& de) {
 //************************************
 VOID CDbgEngine::ShowRegisterInfo(CONTEXT& ct) {
 	printf(
-		"EAX = 0x%x\tEBX = 0x%x\tECX = 0x%x\tEDX = 0x%x\t\n"
-		"ESP = 0x%x\tEBP = 0x%x\tESI = 0x%x\tEIP = 0x%x\t\n"
-		"Dr0 = 0x%x\tDr1 = 0x%x\tDr2 = 0x%x\tDr3 = 0x%x\t\n",
+		"EAX = 0x%X\tEBX = 0x%X\tECX = 0x%X\tEDX = 0x%X\t\n"
+		"ESP = 0x%X\tEBP = 0x%X\tESI = 0x%X\tEIP = 0x%X\t\n"
+		"Dr0 = 0x%X\tDr1 = 0x%X\tDr2 = 0x%X\tDr3 = 0x%X\t\n",
 		ct.Eax, ct.Ebx, ct.Ecx, ct.Edx, ct.Esp, ct.Ebp, ct.Esi, ct.Eip,
 		ct.Dr0, ct.Dr1, ct.Dr2, ct.Dr3
 	);
@@ -235,7 +244,7 @@ DWORD CDbgEngine::WaitforUserCommand() {
 			//UserCommandDisasm(szCommand);
 			break;
 		case 't':// 单步F7
-			UserCommandStepInto();
+			m_pTfBp->UserCommandStepInto(m_pDbgEvt->dwThreadId);
 			return DBG_CONTINUE;
 		case 'p':// 单步F8
 			//UserCommandStepOver();
@@ -269,22 +278,7 @@ DWORD CDbgEngine::WaitforUserCommand() {
 	return DBG_CONTINUE;
 }
 
-//************************************
-// FullName:  CDbgEngine::UserCommandStepInto
-// Returns:   void
-//************************************
-void CDbgEngine::UserCommandStepInto() {
-	// 设置单步
-	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, NULL, m_pDbgEvt->dwThreadId);
-	CONTEXT ct = {};
-	ct.ContextFlags = CONTEXT_ALL;// 指定要获取哪写寄存器的信息，很重要
-	GetThreadContext(hThread, &ct);
-	PEFLAGS pElg = (PEFLAGS)&ct.EFlags;
-	PDBG_REG6 pDr6 = (PDBG_REG6)&ct.Dr6;
-	pElg->TF = 1;
-	SetThreadContext(hThread, &ct);
-	CloseHandle(hThread);
-}
+
 
 //************************************
 // FullName:  CDbgEngine::UserCommandB
@@ -367,7 +361,7 @@ void CDbgEngine::DisasmAtAddr(DWORD addr, DWORD dwCount/*= 10*/) {
 	for (DWORD i = 0; i < dwCount; i++) {
 		// 反汇编
 		uLen = DBG_Disasm(hProcess, (LPVOID)addr, szOpCode, szAsm, szComment);
-		wprintf_s(L"0x%08x %-20s%-32s%s\n", addr, szOpCode, szAsm, szComment);
+		wprintf_s(L"0x%08X %-20s%-32s%s\n", addr, szOpCode, szAsm, szComment);
 		addr += uLen;
 	}
 	//3. 把步骤1中写回去的断点写回来

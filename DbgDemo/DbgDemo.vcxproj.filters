@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="TF断点">
+      <UniqueIdentifier>{c359d7ac-9817-4ecd-b897-20e9d5e1f400}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="主框架">
+      <UniqueIdentifier>{335910d8-a404-4736-a10f-88c5f603466d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -24,11 +30,14 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="DbgEngine.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="MyType.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TfBp.h">
+      <Filter>TF断点</Filter>
+    </ClInclude>
+    <ClInclude Include="DbgEngine.h">
+      <Filter>主框架</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -38,8 +47,11 @@
     <ClCompile Include="DbgDemo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TfBp.cpp">
+      <Filter>TF断点</Filter>
+    </ClCompile>
     <ClCompile Include="DbgEngine.cpp">
-      <Filter>源文件</Filter>
+      <Filter>主框架</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

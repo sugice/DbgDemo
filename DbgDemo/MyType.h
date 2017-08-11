@@ -96,3 +96,9 @@ typedef struct _DBG_REG7
 	unsigned RW3 : 2;  // 设定Dr3指向地址的断点类型
 	unsigned LEN3 : 2;  // 设定Dr3指向地址的断点长度
 }DBG_REG7, *PDBG_REG7;
+
+enum BpType//断点类型
+{
+	TF,
+	CC
+};
