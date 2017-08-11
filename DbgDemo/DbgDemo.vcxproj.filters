@@ -13,11 +13,17 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="TF断点">
-      <UniqueIdentifier>{c359d7ac-9817-4ecd-b897-20e9d5e1f400}</UniqueIdentifier>
-    </Filter>
     <Filter Include="主框架">
       <UniqueIdentifier>{335910d8-a404-4736-a10f-88c5f603466d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="断点处理类">
+      <UniqueIdentifier>{0bcf46d4-4263-4b4c-95a0-e41a79af52d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="断点处理类\TF断点">
+      <UniqueIdentifier>{c359d7ac-9817-4ecd-b897-20e9d5e1f400}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="断点处理类\CC断点">
+      <UniqueIdentifier>{db58ce9c-90eb-4633-b218-391d36798fb1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -34,10 +40,13 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="TfBp.h">
-      <Filter>TF断点</Filter>
+      <Filter>断点处理类\TF断点</Filter>
     </ClInclude>
     <ClInclude Include="DbgEngine.h">
       <Filter>主框架</Filter>
+    </ClInclude>
+    <ClInclude Include="CcBp.h">
+      <Filter>断点处理类\CC断点</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -48,10 +57,13 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TfBp.cpp">
-      <Filter>TF断点</Filter>
+      <Filter>断点处理类\TF断点</Filter>
     </ClCompile>
     <ClCompile Include="DbgEngine.cpp">
       <Filter>主框架</Filter>
+    </ClCompile>
+    <ClCompile Include="CcBp.cpp">
+      <Filter>断点处理类\CC断点</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

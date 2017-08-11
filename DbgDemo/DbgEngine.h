@@ -1,7 +1,13 @@
 #pragma once
 #include <windows.h>
+#include "MyType.h"
 #include <list>
 #include "TfBp.h"
+#include "CcBp.h"
+#include <string>
+using std::string;
+
+
 using std::list;
 
 #define NUMOFBPTYPE 3
@@ -57,6 +63,7 @@ private:
 private:
 	list<DWORD> m_bpAddrList[NUMOFBPTYPE];//保存主动设置的断点地址和断点类型的list
 	CTfBp* m_pTfBp;//设置单步断点的类对象指针
+	CCcBp* m_pCcBp;//设置软件断点类对象
 	BOOL isSystemBp;
 };
 

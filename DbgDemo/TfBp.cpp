@@ -12,7 +12,7 @@ CTfBp::~CTfBp()
 }
 
 //单步走（设置TF断点）
-void CTfBp::UserCommandStepInto(DWORD dwThreadId) {
+void CTfBp::SetTfBreakPoint(DWORD dwThreadId) {
 	// 设置单步
 	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, NULL, dwThreadId);
 	CONTEXT ct = {};

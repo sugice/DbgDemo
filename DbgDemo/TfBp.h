@@ -8,6 +8,6 @@ public:
 	CTfBp();
 	~CTfBp();
 	
-	void UserCommandStepInto(DWORD dwThreadId);
+	void SetTfBreakPoint(DWORD dwThreadId);
 };
 

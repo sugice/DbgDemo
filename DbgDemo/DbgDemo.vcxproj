@@ -139,6 +139,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CcBp.h" />
     <ClInclude Include="DbgEngine.h" />
     <ClInclude Include="MyType.h" />
     <ClInclude Include="stdafx.h" />
@@ -146,6 +147,7 @@
     <ClInclude Include="TfBp.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CcBp.cpp" />
     <ClCompile Include="DbgDemo.cpp" />
     <ClCompile Include="DbgEngine.cpp" />
     <ClCompile Include="stdafx.cpp">

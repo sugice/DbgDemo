@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "DbgEngine.h"
-#include "MyType.h"
+
 /*******************************/
 #define BEA_ENGINE_STATIC
 #define BEA_USE_STDCALL
@@ -14,12 +14,13 @@ CDbgEngine::CDbgEngine()
 	:isSystemBp(TRUE)
 {
 	m_pTfBp = new CTfBp;
+	m_pCcBp = new CCcBp;
 }
 
 
 CDbgEngine::~CDbgEngine() {
-	delete m_pTfBp;
-	m_pTfBp = NULL;
+	delete m_pTfBp; m_pTfBp = NULL;
+	delete m_pCcBp; m_pCcBp = NULL;
 }
 
 
@@ -137,13 +138,21 @@ DWORD CDbgEngine::OnUnLoadDll(DEBUG_EVENT& de) {
 // Parameter: DEBUG_EVENT & de
 //************************************
 DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
-	// 根据异常类型分别处理
+	// 根据异常类型分别处理，在这里要判断是不是自己引发的异常，不是直接返回就好
 	DWORD dwRet = DBG_EXCEPTION_NOT_HANDLED;
 	switch (de.u.Exception.ExceptionRecord.ExceptionCode) {
 		//软件断点
 	case EXCEPTION_BREAKPOINT:
 	{
-		if (isSystemBp)
+		BOOL isMyBp = FALSE;
+		for (auto each :m_bpAddrList[CC])//判断是不是自己下的软件断点
+		{
+			if (each==(DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
+			{
+				isMyBp == TRUE;
+			}
+		}
+		if (isSystemBp||isMyBp)
 		{
 			isSystemBp = FALSE;//用于判断第一个软件断点是系统断点
 			dwRet = OnExceptionCc(de);
@@ -173,10 +182,9 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 // Parameter: DEBUG_EVENT & de
 //************************************
 DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
-	// 1.是你设置的软件断点
-	// 把CC写回去
-	// 设置1个单步
 	// 设置1个标记位 保存要恢复的断点的索引
+	m_pCcBp->RemoveBsBreakPoint((DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress, m_pi.hProcess);// 把CC写回去
+	m_pTfBp->SetTfBreakPoint(de.dwThreadId);// 设置1个单步
 	return DBG_CONTINUE;
 }
 
@@ -244,7 +252,7 @@ DWORD CDbgEngine::WaitforUserCommand() {
 			//UserCommandDisasm(szCommand);
 			break;
 		case 't':// 单步F7
-			m_pTfBp->UserCommandStepInto(m_pDbgEvt->dwThreadId);
+			m_pTfBp->SetTfBreakPoint(m_pDbgEvt->dwThreadId);
 			return DBG_CONTINUE;
 		case 'p':// 单步F8
 			//UserCommandStepOver();
@@ -252,13 +260,7 @@ DWORD CDbgEngine::WaitforUserCommand() {
 		case 'g':// go
 			//UserCommandGo();
 			return DBG_CONTINUE;
-		case 'b':
-			/*
-			bp 软件断点
-			bm 内存断点
-			bh 硬件断点
-			bl 查询断点列表
-			*/
+		case 'b'://bs 软件断点; bm 内存断点; bh 硬件断点; bl 查询断点列表
 			UserCommandB(szCommand);
 			break;
 		case 'k':// 查看函数调用栈帧
@@ -288,17 +290,23 @@ DWORD CDbgEngine::WaitforUserCommand() {
 void CDbgEngine::UserCommandB(CHAR* pCommand) {
 	//  B系列命令
 	switch (pCommand[1]) {
-	case 'p':// bp 下断点
-		//UserCommandBP(pCommand);
+	case 's':// bs 软件断点
+	{
+		string strTemp = pCommand;
+		string strAddr = strTemp.substr(5, 6);//截取出地址
+		int nAddr = stoi(strAddr);//转为int型
+		m_pCcBp->SetBsBreakPoint((DWORD)nAddr, m_pi.hProcess);//设置内存断点
+		m_bpAddrList[CC].push_back((DWORD)nAddr);//记录内存断点
 		break;
-	case 'l':// bl 查看断点列表命令
-		//UserCommandBL(pCommand);
-		break;
+	}
 	case 'h':// bh 硬件断点
 		//UserCommandBH(pCommand);
 		break;
 	case 'm':// bm内存断点
 		//UserCommandBM(pCommand);
+		break;
+	case 'l':// bl 查看断点列表命令
+		//UserCommandBL(pCommand);
 		break;
 	default:
 		printf("请输入正确的指令：\n");
