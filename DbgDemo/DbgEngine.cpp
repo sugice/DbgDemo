@@ -10,8 +10,10 @@
 /*******************************/
 #include <strsafe.h>
 
-CDbgEngine::CDbgEngine() 
-	:isSystemBp(TRUE)
+CDbgEngine::CDbgEngine()
+	:isSystemBp(TRUE),
+	m_isUserTf(FALSE),
+	m_isCcTf(FALSE)
 {
 	m_pTfBp = new CTfBp;
 	m_pCcBp = new CCcBp;
@@ -149,22 +151,31 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 		{
 			if (each==(DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
 			{
-				isMyBp == TRUE;
+				isMyBp = TRUE;
 			}
 		}
 		if (isSystemBp||isMyBp)
 		{
-			isSystemBp = FALSE;//用于判断第一个软件断点是系统断点
 			dwRet = OnExceptionCc(de);
 		}
-
+		
 	}
 		break;
 		//单步异常
-	case EXCEPTION_SINGLE_STEP:
-		dwRet = OnExceptionSingleStep(de);
+	case EXCEPTION_SINGLE_STEP: 
+	{
+		// 这个单步是为什么触发的？
+		// 如果是恢复断点设置的单步  不是F7 F8的单步
+		// 直接恢复断点，然后return,不要等用户命令
+		if (m_isCcTf && !m_isUserTf)
+		{
+			m_isCcTf = FALSE;//只有当软件断点异常处理处将此值设为TRUE此值才为真
+			
+			return DBG_CONTINUE;//这里是直接返回，不接受用户输入
+		}
+		dwRet = DBG_CONTINUE;
 		break;
-
+	}
 		//内存访问异常
 	case EXCEPTION_ACCESS_VIOLATION:
 		dwRet = OnExceptionAccess(de);
@@ -182,9 +193,16 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 // Parameter: DEBUG_EVENT & de
 //************************************
 DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
+	if (isSystemBp)
+	{
+		isSystemBp = FALSE;//用于判断第一个系统设置的软件断点，一次性
+		return DBG_CONTINUE;//直接返回继续执行
+	}
 	// 设置1个标记位 保存要恢复的断点的索引
 	m_pCcBp->RemoveBsBreakPoint((DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress, m_pi.hProcess);// 把CC写回去
+	m_pCcBp->EipSubOne(de.dwThreadId);//EIP减一
 	m_pTfBp->SetTfBreakPoint(de.dwThreadId);// 设置1个单步
+	m_isCcTf = TRUE;//为了恢复软件断点而设置的单步
 	return DBG_CONTINUE;
 }
 
@@ -194,12 +212,8 @@ DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
 // Parameter: DEBUG_EVENT & de
 //************************************
 DWORD CDbgEngine::OnExceptionSingleStep(DEBUG_EVENT& de) {
-	// 判断有没有要恢复的断点
-	// 把断点值写回去
-	// 这个单步是为什么触发的？
-	// 如果是恢复断点设置的单步  不是F7 F8的单步
-	// 直接return,不要等用户命令
-
+	// 判断有没有要恢复的内存断点
+	// 把内存断点值写回去
 	return DBG_CONTINUE;
 }
 
@@ -242,6 +256,8 @@ DWORD CDbgEngine::WaitforUserCommand() {
 	// 2.输出反汇编信息
 	// 从!!!异常地址!!!开始反汇编5行信息，不要从eip开始
 	DisasmAtAddr((DWORD)m_pDbgEvt->u.Exception.ExceptionRecord.ExceptionAddress, 5);
+	//3.输出异常触发地址
+	printf("异常触发地址：%08X", (DWORD)m_pDbgEvt->u.Exception.ExceptionRecord.ExceptionAddress);
 	// 3.等待用户命令
 	// 等待用户命令
 	CHAR szCommand[MAX_INPUT] = {};
@@ -253,6 +269,7 @@ DWORD CDbgEngine::WaitforUserCommand() {
 			break;
 		case 't':// 单步F7
 			m_pTfBp->SetTfBreakPoint(m_pDbgEvt->dwThreadId);
+			m_isUserTf = TRUE;
 			return DBG_CONTINUE;
 		case 'p':// 单步F8
 			//UserCommandStepOver();

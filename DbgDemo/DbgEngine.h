@@ -65,5 +65,7 @@ private:
 	CTfBp* m_pTfBp;//设置单步断点的类对象指针
 	CCcBp* m_pCcBp;//设置软件断点类对象
 	BOOL isSystemBp;
+	BOOL m_isUserTf;
+	BOOL m_isCcTf;
 };
 
