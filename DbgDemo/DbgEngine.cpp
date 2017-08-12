@@ -422,10 +422,10 @@ void CDbgEngine::UserCommandDisasm(CHAR* pCommand) {
 void CDbgEngine::DisasmAtAddr(DWORD addr, DWORD dwCount/*= 10*/) {
 	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, m_pi.dwProcessId);
 	//1. 把所有软件断点的值写回去，防止影响反汇编
-	if (!m_pCcBp->RemoveAllBsBreakPoint(hProcess))
-	{
-		DBGOUT("%s\n", "反汇编时取消所有软件断点失败！");
-	}
+	//if (!m_pCcBp->RemoveAllBsBreakPoint(hProcess))
+	//{
+	//	DBGOUT("%s\n", "反汇编时取消所有软件断点失败！");
+	//}
 	WCHAR szOpCode[50] = {};
 	WCHAR szAsm[50] = {};
 	WCHAR szComment[50] = {};
@@ -439,10 +439,10 @@ void CDbgEngine::DisasmAtAddr(DWORD addr, DWORD dwCount/*= 10*/) {
 		addr += uLen;
 	}
 	//3. 把步骤1中写回去的断点写回来
-	if (!m_pCcBp->ReSetAllBsBreakPoint(hProcess))
-	{
-		DBGOUT("%s\n", "反汇编时重设所有软件断点失败！");
-	}
+	//if (!m_pCcBp->ReSetAllBsBreakPoint(hProcess))
+	//{
+	//	DBGOUT("%s\n", "反汇编时重设所有软件断点失败！");
+	//}
 	CloseHandle(hProcess);
 }
 
