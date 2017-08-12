@@ -5,6 +5,7 @@
 #include "TfBp.h"
 #include "CcBp.h"
 #include <string>
+#include "LordPe.h"
 using std::string;
 
 
@@ -50,6 +51,9 @@ public:
 
 	// u命令
 	void UserCommandDisasm(CHAR* pCommand);
+
+	//获取被调试进程首地址
+	LPCVOID getLoadAddress(DWORD dwProcessId);
 private:
 	// 反汇编函数
 	void DisasmAtAddr(DWORD addr, DWORD dwCount = 10);
@@ -64,8 +68,11 @@ private:
 	list<DWORD> m_bpAddrList[NUMOFBPTYPE];//保存主动设置的断点地址和断点类型的list
 	CTfBp* m_pTfBp;//设置单步断点的类对象指针
 	CCcBp* m_pCcBp;//设置软件断点类对象
-	BOOL isSystemBp;
-	BOOL m_isUserTf;
-	BOOL m_isCcTf;
+	CLordPe* m_pLordPe;//解析pe类指针
+	BOOL isSystemBp;//是否是第一个系统断点
+	BOOL m_isUserTf;//是否是用户单步执行操作设置的TF断点
+	BOOL m_isCcTf;//是都是为了重设软件断点设置的TF断点
+	DWORD m_dwOep;//被调试进程OEP
+	DWORD m_dwBaseAddr;//被调试进程基地址
 };
 

@@ -12,10 +12,11 @@ public:
 public:
 	BOOL SetBsBreakPoint(DWORD dwAddr, HANDLE hProcess);
 	BOOL RemoveBsBreakPoint(DWORD dwAddr, HANDLE hProcess);
+	BOOL RemoveAllBsBreakPoint(HANDLE hProcess);
 	BOOL EipSubOne(DWORD dwThreadId);
+	BOOL ReSetAllBsBreakPoint(HANDLE hProcess);
 private:
 	vector<BYTE> m_vecOldByte;
-	vector<BYTE> m_vecOldByteAddr;
-	BYTE  m_oldByte;//下断点位置原来的内容，恢复用
+	vector<DWORD> m_vecOldByteAddr;
 };
 

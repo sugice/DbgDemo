@@ -25,6 +25,9 @@
     <Filter Include="断点处理类\CC断点">
       <UniqueIdentifier>{db58ce9c-90eb-4633-b218-391d36798fb1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="解析PE类">
+      <UniqueIdentifier>{9608dd1e-2ec6-4cfd-9cae-8037f27433ab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -48,6 +51,9 @@
     <ClInclude Include="CcBp.h">
       <Filter>断点处理类\CC断点</Filter>
     </ClInclude>
+    <ClInclude Include="LordPe.h">
+      <Filter>解析PE类</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -64,6 +70,9 @@
     </ClCompile>
     <ClCompile Include="CcBp.cpp">
       <Filter>断点处理类\CC断点</Filter>
+    </ClCompile>
+    <ClCompile Include="LordPe.cpp">
+      <Filter>解析PE类</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
