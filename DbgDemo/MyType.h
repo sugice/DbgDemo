@@ -99,7 +99,8 @@ typedef struct _DBG_REG7
 
 enum BpType//断点类型
 {
-	CC//软件断点
+	CC,//软件断点
+	BH//硬件断点
 };
 
 enum BhType//硬件断点类型

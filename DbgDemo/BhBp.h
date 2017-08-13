@@ -7,5 +7,6 @@ public:
 	~CBhBp();
 	BOOL SetBhExecBreakPoint(DWORD dwThreadId, DWORD dwAddr);
 	BOOL SetBhRwBreakPoint(DWORD dwThreadId, DWORD dwAddr, DWORD dwType, DWORD dwLen);
+	VOID ReSetAllBhRwBreakPoint(DWORD dwThreadId);
 };
 

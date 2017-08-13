@@ -178,21 +178,39 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 			dwRet = OnExceptionCc(de);
 		}
 		
-	}
 		break;
-		//单步异常
+	}
+		//TF或硬件断点异常
 	case EXCEPTION_SINGLE_STEP: 
 	{
-		// 这个单步是为什么触发的？
-		// 如果是恢复断点设置的单步  不是F7 F8的单步
-		// 直接恢复断点，然后return,不要等用户命令
+		// 这个异常是为什么触发的？
+
+		// 如果是硬件断点触发的，不是用户选择的单步，则设置一个单步，然后等待用户命令（break）
+
+		// 如果是为了恢复软件断点设置的TF断点, 不是用户选择的单步，则直接恢复软件断点，然后return,不要等用户命令
+
+		// 如果是为了恢复硬件断点设置的TF断点，不是用户选择的单步，则直接恢复硬件断点，然后return，不要等用户命令
+
+		// 如果用户单步走（不管为了其它目的设没设TF断点），都应该break（如果为了其它目的有设置TF断点，应该先执行相应操作，再break），接收用户命令
+
+		for (auto each : m_bpAddrList[BH])
+		{
+			if (each == (DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
+			{
+				m_pTfBp->SetTfBreakPoint(de.dwThreadId);// 设置1个单步
+				m_isBhTf = TRUE;//为了恢复硬件断点而设置的单步
+				goto WaitUser;//这里要直接跳出外层的switch，不然会错误的进入恢复硬件断点操作。
+			}
+		}
+
 		if (m_isCcTf)//是为了恢复软件断点而设置的TF断点
 		{
-			m_isCcTf = FALSE;//只有当下一次软件断点异常处理处将此值设为TRUE此值才为真
+			m_isCcTf = FALSE;//只有当下一次设置软件断点时此值才被设为TRUE
 			//恢复所有断点，因为之前在软件断点异常处理处取消了所有软件断点
 			if (!m_pCcBp->ReSetAllBsBreakPoint(m_pi.hProcess))
 			{
 				DBGOUT("%s\n", "恢复所有软件断点失败！");
+				break;
 			}
 			if (m_isUserTf)//用户也设置了TF断点，接收用户输入
 			{				
@@ -206,12 +224,29 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 				return DBG_CONTINUE;//这里是直接返回，不接受用户输入		
 			}
 		}
-		else
+
+		if (m_isBhTf)//是为了恢复硬件断点而设置的TF断点
 		{
-			m_isUserTf = FALSE;//只有当下一次用户设置TF断点此值才为真
-			dwRet = DBG_CONTINUE;
-			break;
-		}	
+			m_isBhTf = FALSE;////只有当下一次设置硬件断点时此值才被设为TRUE
+
+			m_BhBp.ReSetAllBhRwBreakPoint(de.dwThreadId);//重设所有硬件断点
+
+			if (m_isUserTf)//用户选择单步走，接收用户输入
+			{
+				m_isUserTf = FALSE;//只有当下一次用户单步走此值才为真
+
+				dwRet = DBG_CONTINUE;
+				break;
+			}
+			else//用户没选择单步走（没设TF断点），不接受用户输入
+			{
+				return DBG_CONTINUE;//这里是直接返回，不接受用户输入		
+			}
+		}
+		//单步走触发的单步异常
+		m_isUserTf = FALSE;//只有当下一次用户设置TF断点此值才为真
+		dwRet = DBG_CONTINUE;
+		break;
 	}
 		//内存访问异常
 	case EXCEPTION_ACCESS_VIOLATION:
@@ -220,6 +255,7 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 	default:
 		break;
 	}
+WaitUser:
 	WaitforUserCommand();
 	return dwRet;
 }
@@ -417,7 +453,7 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 				}
 			}
 		}
-		m_isBhTf = TRUE;
+		m_bpAddrList[BH].push_back((DWORD)nAddr);//记录硬件断点
 		break;
 	}
 	case 'm':// bm内存断点

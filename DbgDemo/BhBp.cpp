@@ -117,3 +117,28 @@ BOOL CBhBp::SetBhRwBreakPoint(DWORD dwThreadId, DWORD dwAddr, DWORD dwType, DWOR
 	CloseHandle(hThread);
 	return TRUE;
 }
+
+VOID CBhBp::ReSetAllBhRwBreakPoint(DWORD dwThreadId)
+{
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, NULL, dwThreadId);
+	CONTEXT ct = { CONTEXT_DEBUG_REGISTERS };
+	GetThreadContext(hThread, &ct);//获取线程环境块
+	DBG_REG7* pDr7 = (DBG_REG7*)&ct.Dr7;
+	//判断Dr0-Dr3这四个寄存器内有没有值
+	if (ct.Dr0)
+	{
+		pDr7->L0 = 1;//启用该断点
+	}
+	if (ct.Dr1)
+	{
+		pDr7->L1 = 1;//启用该断点
+	}
+	if (ct.Dr2)
+	{
+		pDr7->L2 = 1;//启用该断点
+	}
+	if (ct.Dr3)
+	{
+		pDr7->L3 = 1;//启用该断点
+	}
+}
