@@ -99,6 +99,21 @@ typedef struct _DBG_REG7
 
 enum BpType//断点类型
 {
-	TF,
-	CC
+	CC//软件断点
+};
+
+enum BhType//硬件断点类型
+{
+	E,//执行断点
+	R,//读取断点
+	W,//写入断点
+	Q//读写短点
+};
+
+enum BhLen//硬件断点长度
+{
+	OneByte,//一字节长度
+	TwoByte,//2字节长度
+	EightByte,//8字节长度
+	FourByte//4字节长度
 };

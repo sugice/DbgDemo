@@ -10,6 +10,8 @@
 /*******************************/
 #include <strsafe.h>
 
+#include <Shlwapi.h>
+#pragma comment(lib,"Shlwapi.lib") 
 
 
 #define DBGOUT(format,error) \
@@ -186,6 +188,7 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 		if (m_isCcTf)//是为了恢复软件断点而设置的TF断点
 		{
 			m_isCcTf = FALSE;//只有当下一次软件断点异常处理处将此值设为TRUE此值才为真
+			//恢复所有断点，因为之前在软件断点异常处理处取消了所有软件断点
 			if (!m_pCcBp->ReSetAllBsBreakPoint(m_pi.hProcess))
 			{
 				DBGOUT("%s\n", "恢复所有软件断点失败！");
@@ -231,10 +234,10 @@ DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
 		isSystemBp = FALSE;//用于判断第一个系统设置的软件断点，一次性
 		return DBG_CONTINUE;//直接返回继续执行
 	}
-	// 设置1个标记位 保存要恢复的断点的索引
-	if (!m_pCcBp->RemoveBsBreakPoint((DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress, m_pi.hProcess))// 把CC写回去
+	//1. 把所有软件断点的值写回去，防止影响反汇编,同时还可以让当前被断下来的指令恢复原状
+	if (!m_pCcBp->RemoveAllBsBreakPoint(m_pi.hProcess))
 	{
-		DBGOUT("%s\n", "恢复软件断点失败！");
+		DBGOUT("%s\n", "取消所有软件断点失败！");
 	}
 	if (!m_pCcBp->EipSubOne(de.dwThreadId))//EIP减一
 	{
@@ -284,7 +287,7 @@ VOID CDbgEngine::ShowRegisterInfo(CONTEXT& ct) {
 // FullName:  CDbgEngine::WaitforUserCommand
 // Returns:   DWORD
 //************************************
-DWORD CDbgEngine::WaitforUserCommand() {
+VOID CDbgEngine::WaitforUserCommand() {
 	// 1.输出寄存器信息
 	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, 0, m_pDbgEvt->dwThreadId);
 	CONTEXT ct = {};
@@ -309,13 +312,12 @@ DWORD CDbgEngine::WaitforUserCommand() {
 		case 't':// 单步F7
 			m_pTfBp->SetTfBreakPoint(m_pDbgEvt->dwThreadId);
 			m_isUserTf = TRUE;
-			return DBG_CONTINUE;
+			return;
 		case 'p':// 单步F8
 			//UserCommandStepOver();
-			return DBG_CONTINUE;
+			return;
 		case 'g':// go
-			//UserCommandGo();
-			return DBG_CONTINUE;
+			return;
 		case 'b'://bs 软件断点; bm 内存断点; bh 硬件断点; bl 查询断点列表
 			UserCommandB(szCommand);
 			break;
@@ -331,13 +333,12 @@ DWORD CDbgEngine::WaitforUserCommand() {
 		case 'o'://在OEP处下断,并让程序执行到OEP处
 			m_pCcBp->SetBsBreakPoint(m_dwBaseAddr + m_dwOep, m_pi.hProcess);
 			m_bpAddrList[CC].push_back(m_dwBaseAddr + m_dwOep);
-			return DBG_CONTINUE;
+			return;
 		default:
 			printf("请输入正确的指令：\n");
 			break;
 		}
 	}
-	return DBG_CONTINUE;
 }
 
 
@@ -353,9 +354,10 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 	case 's':// bs 软件断点
 	{
 		string strTemp = pCommand;
-		string strAddr = strTemp.substr(5, 6);//截取出地址
-		int nAddr = stoi(strAddr);//转为int型
-		if (!m_pCcBp->SetBsBreakPoint((DWORD)nAddr, m_pi.hProcess));//设置软件断点
+		string strAddr = strTemp.substr(3, 8);//截取出地址
+		int nAddr;
+		StrToIntExA(strAddr.c_str(), STIF_SUPPORT_HEX,&nAddr);//转为int型
+		if (!m_pCcBp->SetBsBreakPoint((DWORD)nAddr, m_pi.hProcess))//设置软件断点
 		{
 			DBGOUT("%s\n", "设置软件断点失败！");
 		}
@@ -363,8 +365,60 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 		break;
 	}
 	case 'h':// bh 硬件断点
-		//UserCommandBH(pCommand);
+	{
+		string strTemp = pCommand;
+		string strAddr = strTemp.substr(3, 8);//截取出地址
+		int nAddr;
+		StrToIntExA(strAddr.c_str(), STIF_SUPPORT_HEX, &nAddr);//转为int型
+		string strType = strTemp.substr(12, 1);//截取出硬件断点类型
+		string strLen = strTemp.substr(14, 1);//截取出硬件断点长度
+		if (strcmp(strType.c_str(),"e")==0)//设置硬件执行断点
+		{
+			if (!m_BhBp.SetBhExecBreakPoint(m_pDbgEvt->dwThreadId,(DWORD)nAddr))//设置硬件执行断点
+			{
+				DBGOUT("%s\n", "硬件执行断点设置失败！");
+			}
+		}
+		else//读，写，读写
+		{
+			int nType;
+			if (strcmp(strType.c_str(), "r") == 0)
+			{
+				nType = R;//读断点
+			}
+			if (strcmp(strType.c_str(), "w") == 0)
+			{
+				nType = W;//写断点
+			}
+			if (strcmp(strType.c_str(), "q") == 0)
+			{
+				nType = Q;//读写断点
+			}
+			if (strcmp(strLen.c_str(), "1") == 0)
+			{
+				if (!m_BhBp.SetBhRwBreakPoint(m_pDbgEvt->dwThreadId, (DWORD)nAddr, nType, OneByte))
+				{
+					DBGOUT("%s\n", "硬件读取断点设置失败！");
+				}
+			}
+			if (strcmp(strLen.c_str(), "2") == 0)
+			{
+				if (!m_BhBp.SetBhRwBreakPoint(m_pDbgEvt->dwThreadId, (DWORD)nAddr, nType, TwoByte))
+				{
+					DBGOUT("%s\n", "硬件写入断点设置失败！");
+				}
+			}
+			if (strcmp(strLen.c_str(), "4") == 0)
+			{
+				if (!m_BhBp.SetBhRwBreakPoint(m_pDbgEvt->dwThreadId, (DWORD)nAddr, nType, FourByte))
+				{
+					DBGOUT("%s\n", "硬件读写断点设置失败！");
+				}
+			}
+		}
+		
 		break;
+	}
 	case 'm':// bm内存断点
 		//UserCommandBM(pCommand);
 		break;
@@ -421,11 +475,6 @@ void CDbgEngine::UserCommandDisasm(CHAR* pCommand) {
 //************************************
 void CDbgEngine::DisasmAtAddr(DWORD addr, DWORD dwCount/*= 10*/) {
 	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, m_pi.dwProcessId);
-	//1. 把所有软件断点的值写回去，防止影响反汇编
-	//if (!m_pCcBp->RemoveAllBsBreakPoint(hProcess))
-	//{
-	//	DBGOUT("%s\n", "反汇编时取消所有软件断点失败！");
-	//}
 	WCHAR szOpCode[50] = {};
 	WCHAR szAsm[50] = {};
 	WCHAR szComment[50] = {};
@@ -438,11 +487,7 @@ void CDbgEngine::DisasmAtAddr(DWORD addr, DWORD dwCount/*= 10*/) {
 		wprintf_s(L"0x%08X %-20s%-32s%s\n", addr, szOpCode, szAsm, szComment);
 		addr += uLen;
 	}
-	//3. 把步骤1中写回去的断点写回来
-	//if (!m_pCcBp->ReSetAllBsBreakPoint(hProcess))
-	//{
-	//	DBGOUT("%s\n", "反汇编时重设所有软件断点失败！");
-	//}
+	
 	CloseHandle(hProcess);
 }
 

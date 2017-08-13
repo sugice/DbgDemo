@@ -28,6 +28,9 @@
     <Filter Include="解析PE类">
       <UniqueIdentifier>{9608dd1e-2ec6-4cfd-9cae-8037f27433ab}</UniqueIdentifier>
     </Filter>
+    <Filter Include="硬件断点">
+      <UniqueIdentifier>{758dd662-58c8-46f0-9ee5-9ca2458becc4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -54,6 +57,9 @@
     <ClInclude Include="LordPe.h">
       <Filter>解析PE类</Filter>
     </ClInclude>
+    <ClInclude Include="BhBp.h">
+      <Filter>硬件断点</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -73,6 +79,9 @@
     </ClCompile>
     <ClCompile Include="LordPe.cpp">
       <Filter>解析PE类</Filter>
+    </ClCompile>
+    <ClCompile Include="BhBp.cpp">
+      <Filter>硬件断点</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
