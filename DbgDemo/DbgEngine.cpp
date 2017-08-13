@@ -20,7 +20,8 @@ printf("%s , %s , 第%d行: " ## format , __FILE__, __FUNCTION__ ,__LINE__,error)/
 CDbgEngine::CDbgEngine()
 	:isSystemBp(TRUE),
 	m_isUserTf(FALSE),
-	m_isCcTf(FALSE)
+	m_isCcTf(FALSE),
+	m_isBhTf(FALSE)
 {
 	m_pTfBp = new CTfBp;
 	m_pCcBp = new CCcBp;
@@ -416,7 +417,7 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 				}
 			}
 		}
-		
+		m_isBhTf = TRUE;
 		break;
 	}
 	case 'm':// bm内存断点

@@ -68,10 +68,14 @@ private:
 	CTfBp* m_pTfBp;//设置单步断点的类对象指针
 	CCcBp* m_pCcBp;//设置软件断点类对象
 	CBhBp m_BhBp;//设置硬件断点类对象
+
 	CLordPe* m_pLordPe;//解析pe类指针
+
 	BOOL isSystemBp;//是否是第一个系统断点
 	BOOL m_isUserTf;//是否是用户单步执行操作设置的TF断点
-	BOOL m_isCcTf;//是都是为了重设软件断点设置的TF断点
+	BOOL m_isCcTf;//是否是为了重设软件断点设置的TF断点
+	BOOL m_isBhTf;//是否是为了重设硬件断点设置的TF断点
+
 	DWORD m_dwOep;//被调试进程OEP
 	DWORD m_dwBaseAddr;//被调试进程基地址
 };
