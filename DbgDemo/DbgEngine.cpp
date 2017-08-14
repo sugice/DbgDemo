@@ -21,7 +21,9 @@ CDbgEngine::CDbgEngine()
 	:isSystemBp(TRUE),
 	m_isUserTf(FALSE),
 	m_isCcTf(FALSE),
-	m_isBhTf(FALSE)
+	m_isBhTf(FALSE),
+	m_isBmTf(FALSE),
+	m_notWaitUser(FALSE)
 {
 	m_pTfBp = new CTfBp;
 	m_pCcBp = new CCcBp;
@@ -198,7 +200,7 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 			m_pTfBp->SetTfBreakPoint(de.dwThreadId);//设置一个单步
 			m_isBhTf = TRUE;//表示下一个单步是为了重设硬件断点
 			dwRet = DBG_CONTINUE;
-			goto WaitUser;//一定要跳出外层switch，进入等待用户命令的函数
+			goto WaitUser;//一定要跳出外层switch，进入等待用户命令的函数，否则会触发下面的重设硬件断点操作
 		}
 
 		if (m_isCcTf)//是为了恢复软件断点而设置的TF断点
@@ -210,48 +212,61 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 				DBGOUT("%s\n", "恢复所有软件断点失败！");
 				break;
 			}
+
 			if (m_isUserTf)//用户也设置了TF断点，接收用户输入
 			{				
-				m_isUserTf = FALSE;//只有当下一次用户设置TF断点此值才为真
-
-				dwRet = DBG_CONTINUE;
-				break;
+				m_notWaitUser = FALSE;//要接受用户操作
 			}
 			else//用户没设TF断点，不接受用户输入
 			{
-				return DBG_CONTINUE;//这里是直接返回，不接受用户输入		
+				m_notWaitUser = TRUE;//不接受用户操作，继续执行程序
 			}
 		}
 
 		if (m_isBhTf)//是为了恢复硬件断点而设置的TF断点
 		{
 			m_isBhTf = FALSE;////只有当下一次设置硬件断点时此值才被设为TRUE
-
 			m_BhBp.ReSetAllBhRwBreakPoint(de.dwThreadId);//重设所有硬件断点
 
 			if (m_isUserTf)//用户选择单步走，接收用户输入
 			{
-				m_isUserTf = FALSE;//只有当下一次用户单步走此值才为真
-
-				dwRet = DBG_CONTINUE;
-				break;
+				m_notWaitUser = FALSE;//要接受用户操作
 			}
 			else//用户没选择单步走（没设TF断点），不接受用户输入
 			{
-				return DBG_CONTINUE;//这里是直接返回，不接受用户输入		
+				m_notWaitUser = TRUE;//不接受用户操作，继续执行程序
 			}
 		}
-		//单步走触发的单步异常
+		if (m_isBmTf)//是为了恢复内存断点而设置的TF
+		{
+			m_bmBp.ReSetBmBreakPoint(m_pi.hProcess);
+			m_notWaitUser = TRUE;//不接受用户操作，继续执行程序
+		}
 		m_isUserTf = FALSE;//只有当下一次用户设置TF断点此值才为真
 		dwRet = DBG_CONTINUE;
 		break;
 	}
 		//内存访问异常
 	case EXCEPTION_ACCESS_VIOLATION:
-		dwRet = OnExceptionAccess(de);
-		break;
+	{
+		if ((DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress==m_bmAddr)//当内存访问异常地址等于设置的地址时
+		{
+			dwRet = DBG_CONTINUE;
+			break;//跳出switch去接收用户输入
+		}
+		//异常地址不是设置的地址，取消内存断点，设置单步，然后直接返回函数，不接受用户输入
+		m_bmBp.RemoveBmBreakPoint(m_pi.hProcess);
+		m_pTfBp->SetTfBreakPoint(de.dwThreadId);
+		m_isBmTf = TRUE;//表示下一个单步断点是为了重设内存断点而设置
+		return DBG_CONTINUE;//直接返回，不接受用户输入
+	}
 	default:
 		break;
+	}
+	if (m_notWaitUser)
+	{
+		m_notWaitUser = FALSE;
+		return DBG_CONTINUE;//直接返回，不接受用户输入
 	}
 WaitUser:
 	WaitforUserCommand();
@@ -283,25 +298,7 @@ DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
 	return DBG_CONTINUE;
 }
 
-//************************************
-// FullName:  CDbgEngine::OnExceptionSingleStep
-// Returns:   DWORD
-// Parameter: DEBUG_EVENT & de
-//************************************
-DWORD CDbgEngine::OnExceptionSingleStep(DEBUG_EVENT& de) {
-	// 判断有没有要恢复的内存断点
-	// 把内存断点值写回去
-	return DBG_CONTINUE;
-}
 
-//************************************
-// FullName:  CDbgEngine::OnExceptionAccess
-// Returns:   DWORD
-// Parameter: DEBUG_EVENT & de
-//************************************
-DWORD CDbgEngine::OnExceptionAccess(DEBUG_EVENT& de) {
-	return DBG_CONTINUE;
-}
 
 //************************************
 // FullName:  CDbgEngine::ShowRegisterInfo
@@ -454,8 +451,18 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 		break;
 	}
 	case 'm':// bm内存断点
-		//UserCommandBM(pCommand);
+	{
+		string strTemp = pCommand;
+		string strAddr = strTemp.substr(3, 8);//截取出地址
+		int nAddr;
+		StrToIntExA(strAddr.c_str(), STIF_SUPPORT_HEX, &nAddr);//转为int型
+		if (!m_bmBp.SetBmBreakPoint((DWORD)nAddr,m_pi.hProcess))
+		{
+			DBGOUT("%s\n", "设置内存访问断点失败！");
+		}
+		m_bmAddr = nAddr;//保存设置的内存断点地址
 		break;
+	}
 	case 'l':// bl 查看断点列表命令
 		//UserCommandBL(pCommand);
 		break;

@@ -140,6 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BhBp.h" />
+    <ClInclude Include="BmBp.h" />
     <ClInclude Include="CcBp.h" />
     <ClInclude Include="DbgEngine.h" />
     <ClInclude Include="LordPe.h" />
@@ -150,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BhBp.cpp" />
+    <ClCompile Include="BmBp.cpp" />
     <ClCompile Include="CcBp.cpp" />
     <ClCompile Include="DbgDemo.cpp" />
     <ClCompile Include="DbgEngine.cpp" />

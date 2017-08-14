@@ -7,6 +7,7 @@
 #include <string>
 #include "LordPe.h"
 #include "BhBp.h"
+#include "BmBp.h"
 using std::string;
 
 
@@ -37,10 +38,7 @@ public:
 	// 异常调试事件---------↓----------
 	// 软件断点异常
 	DWORD OnExceptionCc(DEBUG_EVENT& de);
-	// 单步异常
-	DWORD OnExceptionSingleStep(DEBUG_EVENT& de);
-	// 内存访问异常
-	DWORD OnExceptionAccess(DEBUG_EVENT& de);
+
 	// 异常调试事件---------↑----------
 	// 打印寄存器信息
 	VOID ShowRegisterInfo(CONTEXT& ct);
@@ -65,9 +63,11 @@ private:
 	LPDEBUG_EVENT m_pDbgEvt;
 private:
 	list<DWORD> m_bpAddrList[NUMOFBPTYPE];//保存主动设置的断点地址和断点类型的list
+	DWORD m_bmAddr;//记录内存访问断点地址，只允许设置一个内存访问断点
 	CTfBp* m_pTfBp;//设置单步断点的类对象指针
-	CCcBp* m_pCcBp;//设置软件断点类对象
+	CCcBp* m_pCcBp;//设置软件断点类对象指针
 	CBhBp m_BhBp;//设置硬件断点类对象
+	CBmBp m_bmBp;//设置内存断点类对象
 
 	CLordPe* m_pLordPe;//解析pe类指针
 
@@ -75,7 +75,8 @@ private:
 	BOOL m_isUserTf;//是否是用户单步执行操作设置的TF断点
 	BOOL m_isCcTf;//是否是为了重设软件断点设置的TF断点
 	BOOL m_isBhTf;//是否是为了重设硬件断点设置的TF断点
-
+	BOOL m_isBmTf;//是否是为了重设内存断点设置的TF断点
+	BOOL m_notWaitUser;//是否要接受用户输入
 	DWORD m_dwOep;//被调试进程OEP
 	DWORD m_dwBaseAddr;//被调试进程基地址
 };

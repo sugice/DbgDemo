@@ -28,7 +28,10 @@
     <Filter Include="解析PE类">
       <UniqueIdentifier>{9608dd1e-2ec6-4cfd-9cae-8037f27433ab}</UniqueIdentifier>
     </Filter>
-    <Filter Include="硬件断点">
+    <Filter Include="断点处理类\内存访问断点">
+      <UniqueIdentifier>{66747272-13d0-4b19-84ea-0e72dfb993ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="断点处理类\硬件断点">
       <UniqueIdentifier>{758dd662-58c8-46f0-9ee5-9ca2458becc4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -58,7 +61,10 @@
       <Filter>解析PE类</Filter>
     </ClInclude>
     <ClInclude Include="BhBp.h">
-      <Filter>硬件断点</Filter>
+      <Filter>断点处理类\硬件断点</Filter>
+    </ClInclude>
+    <ClInclude Include="BmBp.h">
+      <Filter>断点处理类\内存访问断点</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -81,7 +87,10 @@
       <Filter>解析PE类</Filter>
     </ClCompile>
     <ClCompile Include="BhBp.cpp">
-      <Filter>硬件断点</Filter>
+      <Filter>断点处理类\硬件断点</Filter>
+    </ClCompile>
+    <ClCompile Include="BmBp.cpp">
+      <Filter>断点处理类\内存访问断点</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
