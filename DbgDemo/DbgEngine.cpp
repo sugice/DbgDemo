@@ -193,6 +193,16 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 				break;
 			}
 		}
+		for (auto each:m_bpAddrList[BP])//判断是不是自己下的条件断点
+		{
+			if (each==(DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
+			{
+				if (IsConditionBreakPoint(de.dwThreadId))
+				{
+				}
+				
+			}
+		}
 		if (isSystemBp||isMyBp)
 		{
 			dwRet = OnExceptionCc(de);
@@ -487,6 +497,60 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 		m_bmAddr = nAddr;//保存设置的内存断点地址
 		break;
 	}
+	case 'p'://条件断点
+	{
+		string strTemp = pCommand;
+		string strAddr = strTemp.substr(3, 8);//截取出地址
+		int nAddr;
+		StrToIntExA(strAddr.c_str(), STIF_SUPPORT_HEX, &nAddr);//转为int型
+		if (!m_pCcBp->SetBsBreakPoint((DWORD)nAddr, m_pi.hProcess))//设置软件断点
+		{
+			DBGOUT("%s\n", "设置软件断点失败！");
+		}
+		m_bpAddrList[BP].push_back((DWORD)nAddr);//记录条件断点
+
+		string strLeft = strTemp.substr(12, 3);//截取出表达式左边的寄存器
+		string strSymbol = strTemp.substr(15, 2);//截取出表达式的操作符
+		string strRight = strTemp.substr(17, strTemp.size() - 17 + 1);//截取出表达式右边的操作数
+		m_dwRight = StrToIntA(strRight.c_str());
+		if (strcmp(strLeft.c_str(), "eax") == 0)
+		{
+			m_dwLeft = EAX;
+		}
+		if (strcmp(strLeft.c_str(), "ebx") == 0)
+		{
+			m_dwLeft = EBX;
+		}
+		if (strcmp(strLeft.c_str(), "ecx") == 0)
+		{
+			m_dwLeft = ECX;
+		}
+		if (strcmp(strLeft.c_str(), "edx") == 0)
+		{
+			m_dwLeft = ECX;
+		}
+		if (strcmp(strSymbol.c_str(), "> ") == 0)
+		{
+			m_dwSymbol = MoreThan;
+		}
+		if (strcmp(strSymbol.c_str(), "==") == 0)
+		{
+			m_dwSymbol = Equal;
+		}
+		if (strcmp(strSymbol.c_str(), "< ") == 0)
+		{
+			m_dwSymbol = LessThan;
+		}
+		if (strcmp(strSymbol.c_str(), ">=") == 0)
+		{
+			m_dwSymbol = MoreThanOrEqual;
+		}
+		if (strcmp(strSymbol.c_str(), ">=") == 0)
+		{
+			m_dwSymbol = LessThanOrEqual;
+		}
+		break;
+	}
 	case 'l':// bl 查看断点列表命令
 		//UserCommandBL(pCommand);
 		break;
@@ -694,4 +758,149 @@ VOID CDbgEngine::PrintfModulesInfo()
 	for (MODULEENTRY32 &module : m_vecModule) {
 		wprintf(L"%s\t%08X\t%d\t%s\n", module.szModule, module.modBaseAddr, module.modBaseSize, module.szExePath);
 	}
+}
+
+//************************************
+// Method:    IsConditionBreakPoint
+// FullName:  CDbgEngine::IsConditionBreakPoint
+// Access:    public 
+// Returns:   BOOL
+// Qualifier:
+// Parameter: DWORD dwThreadId
+// Function:  根据解析的条件表达式判断条件断点是否命中
+//************************************
+BOOL CDbgEngine::IsConditionBreakPoint(DWORD dwThreadId)
+{
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, NULL, dwThreadId);
+	CONTEXT ct = {};
+	ct.ContextFlags = CONTEXT_ALL;// 指定要获取哪写寄存器的信息，很重要
+	GetThreadContext(hThread, &ct);
+	switch (m_dwLeft)
+	{
+	case EAX:
+	{
+		switch (m_dwSymbol)
+		{
+		case MoreThan:
+			if (ct.Eax > m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case Equal:
+			if (ct.Eax = m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThan:
+			if (ct.Eax < m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case MoreThanOrEqual:
+			if (ct.Eax >= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThanOrEqual:
+			if (ct.Eax <= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+	case EBX:
+	{
+		switch (m_dwSymbol)
+		{
+		case MoreThan:
+			if (ct.Ebx > m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case Equal:
+			if (ct.Ebx = m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThan:
+			if (ct.Ebx < m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case MoreThanOrEqual:
+			if (ct.Ebx >= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThanOrEqual:
+			if (ct.Ebx <= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+	case ECX:
+	{
+		switch (m_dwSymbol)
+		{
+		case MoreThan:
+			if (ct.Ecx > m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case Equal:
+			if (ct.Ecx = m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThan:
+			if (ct.Ecx < m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case MoreThanOrEqual:
+			if (ct.Ecx >= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThanOrEqual:
+			if (ct.Ecx <= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+	case EDX:
+	{
+		switch (m_dwSymbol)
+		{
+		case MoreThan:
+			if (ct.Edx > m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case Equal:
+			if (ct.Edx = m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThan:
+			if (ct.Edx < m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case MoreThanOrEqual:
+			if (ct.Edx >= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		case LessThanOrEqual:
+			if (ct.Edx <= m_dwRight)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+	}
+	CloseHandle(hThread);
 }

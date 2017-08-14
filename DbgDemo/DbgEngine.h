@@ -65,6 +65,9 @@ public:
 	BOOL EnumModules(DWORD dwPid);
 	//打印模块信息
 	VOID PrintfModulesInfo();
+
+	//判断条件断点是否命中
+	BOOL IsConditionBreakPoint(DWORD dwThreadId);
 private:
 	// 反汇编函数
 	void DisasmAtAddr(DWORD addr, DWORD dwCount = 10);
@@ -95,5 +98,9 @@ private:
 	BOOL m_notWaitUser;//是否要接受用户输入
 	DWORD m_dwOep;//被调试进程OEP
 	DWORD m_dwBaseAddr;//被调试进程基地址
+
+	DWORD m_dwLeft;//用来记录表达式左操作寄存器类型
+	DWORD m_dwSymbol;//用来记录表达式操作符号
+	DWORD m_dwRight;//用来记录表达式右操作数
 };
 
