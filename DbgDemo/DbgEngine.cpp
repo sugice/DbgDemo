@@ -45,7 +45,7 @@ CDbgEngine::~CDbgEngine() {
 //************************************
 void CDbgEngine::DebugMain() {
 	//1.1	调试方式打开程序
-	WCHAR szPath[] = L"CrackMe3.exe";
+	WCHAR szPath[] = L"ConsoleApplication1.exe";
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
 	BOOL bStatus = CreateProcess(szPath, NULL, NULL, NULL, FALSE,
 		DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS | CREATE_NEW_CONSOLE,	//调试新建进程 | 拥有新控制台,不继承其父级控制台（默认）
@@ -193,19 +193,14 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 				break;
 			}
 		}
-		for (auto each:m_bpAddrList[BP])//判断是不是自己下的条件断点
-		{
-			if (each==(DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
-			{
-				if (IsConditionBreakPoint(de.dwThreadId))
-				{
-				}
-				
-			}
-		}
+
 		if (isSystemBp||isMyBp)
 		{
 			dwRet = OnExceptionCc(de);
+			if (dwRet == -1)//说明条件断点不满足，因此此时不应该接受用户命令，而是让程序继续执行
+			{
+				return DBG_CONTINUE;
+			}
 		}
 		
 		break;
@@ -314,6 +309,17 @@ DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
 		isSystemBp = FALSE;//用于判断第一个系统设置的软件断点，一次性
 		return DBG_CONTINUE;//直接返回继续执行
 	}
+	BOOL isSatisfaction = TRUE;
+
+	for (auto each : m_bpAddrList[BP])//判断是不是自己下的条件断点
+	{
+		if (each == (DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
+		{
+			//是条件断点再判断条件是否满足
+			isSatisfaction = IsConditionBreakPoint(de.dwThreadId);
+
+		}
+	}
 	//1. 把所有软件断点的值写回去，防止影响反汇编,同时还可以让当前被断下来的指令恢复原状
 	if (!m_pCcBp->RemoveAllBsBreakPoint(m_pi.hProcess))
 	{
@@ -325,7 +331,14 @@ DWORD CDbgEngine::OnExceptionCc(DEBUG_EVENT& de) {
 	}
 	m_pTfBp->SetTfBreakPoint(de.dwThreadId);// 设置1个单步
 	m_isCcTf = TRUE;//为了恢复软件断点而设置的单步
-	return DBG_CONTINUE;
+	if (isSatisfaction)
+	{
+		return DBG_CONTINUE;
+	}
+	else
+	{
+		return -1;//特殊情况，表示条件不满足
+	}
 }
 
 
@@ -508,6 +521,7 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 			DBGOUT("%s\n", "设置软件断点失败！");
 		}
 		m_bpAddrList[BP].push_back((DWORD)nAddr);//记录条件断点
+		m_bpAddrList[CC].push_back((DWORD)nAddr);//同时记录在软件断点里面
 
 		string strLeft = strTemp.substr(12, 3);//截取出表达式左边的寄存器
 		string strSymbol = strTemp.substr(15, 2);//截取出表达式的操作符
@@ -787,7 +801,7 @@ BOOL CDbgEngine::IsConditionBreakPoint(DWORD dwThreadId)
 			else
 				return FALSE;
 		case Equal:
-			if (ct.Eax = m_dwRight)
+			if (ct.Eax == m_dwRight)
 				return TRUE;
 			else
 				return FALSE;
