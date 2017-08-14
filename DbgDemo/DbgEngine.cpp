@@ -12,6 +12,7 @@
 
 #include <Shlwapi.h>
 #pragma comment(lib,"Shlwapi.lib") 
+#include <Psapi.h>
 
 
 #define DBGOUT(format,error) \
@@ -95,10 +96,10 @@ DWORD CDbgEngine::DispatchDbgEvent(DEBUG_EVENT& de) {
 		dwRet = DBG_CONTINUE;
 		break;
 	case LOAD_DLL_DEBUG_EVENT:			//加载DLL
-		dwRet = OnLoadDll(de);					//printf("Load:%x\n", pDebugEvent->u.LoadDll.lpBaseOfDll); break;
+		dwRet = OnLoadDll(de);			//printf("Load:%x\n", pDebugEvent->u.LoadDll.lpBaseOfDll); break;
 		break;
 	case UNLOAD_DLL_DEBUG_EVENT:		//卸载DLL
-		OnUnLoadDll(de);								//printf("UnLoad:%x\n", pDebugEvent->u.UnloadDll.lpBaseOfDll); break;
+		OnUnLoadDll(de);				//printf("UnLoad:%x\n", pDebugEvent->u.UnloadDll.lpBaseOfDll); break;
 		dwRet = DBG_CONTINUE;
 		break;
 	case OUTPUT_DEBUG_STRING_EVENT:		//输出调试字符串
@@ -136,8 +137,14 @@ DWORD CDbgEngine::OnCreateProcess(DEBUG_EVENT& de) {
 DWORD CDbgEngine::OnLoadDll(DEBUG_EVENT& de) {
 	// 保存模块信息
 	// 调试信息里有部分加载的模块信息
-	LPLOAD_DLL_DEBUG_INFO lpDllInfo = &de.u.LoadDll;
-	// ...其他信息略 
+	MyLOAD_DLL_DEBUG_INFO myLoadDllInfoTemp;
+	myLoadDllInfoTemp.hFile = de.u.LoadDll.hFile;
+	myLoadDllInfoTemp.lpBaseOfDll = de.u.LoadDll.lpBaseOfDll;
+	myLoadDllInfoTemp.dwDebugInfoFileOffset = de.u.LoadDll.dwDebugInfoFileOffset;
+	myLoadDllInfoTemp.nDebugInfoSize = de.u.LoadDll.nDebugInfoSize;
+	myLoadDllInfoTemp.lpImageName = de.u.LoadDll.lpImageName;
+	myLoadDllInfoTemp.fUnicode = de.u.LoadDll.fUnicode;
+	m_vecLoadDllInfo.push_back(myLoadDllInfoTemp);
 	return DBG_CONTINUE;
 }
 
@@ -151,6 +158,15 @@ DWORD CDbgEngine::OnUnLoadDll(DEBUG_EVENT& de) {
 	// de.u.UnloadDll保存有卸载的模块基址
 	// 可以通过他去数组中找到是哪个DLL被卸载
 	// 略
+	for (DWORD i = 0; i < m_vecLoadDllInfo.size(); i++)
+	{
+		if (m_vecLoadDllInfo[i].lpBaseOfDll==de.u.UnloadDll.lpBaseOfDll)
+		{
+			m_vecLoadDllInfo.erase(m_vecLoadDllInfo.begin() + i);//删除向量中的当前对象
+			break;
+		}
+
+	}
 	return DBG_CONTINUE;
 }
 
@@ -358,10 +374,14 @@ VOID CDbgEngine::WaitforUserCommand() {
 			UserCommandB(szCommand);
 			break;
 		case 'k':// 查看函数调用栈帧
-			//UserCommandK();
+			if (!GetStackInfo(m_pDbgEvt->dwThreadId, m_pi.hProcess))
+			{
+				DBGOUT("%s\n", "查看堆栈信息失败！");
+			}
 			break;
 		case 'm':// 查看模块信息
-			//UserCommandM();
+			EnumModules(m_pi.dwProcessId);
+			PrintfModulesInfo();
 			break;
 		case 'd':
 			//UserCommandD();// dump
@@ -512,6 +532,7 @@ void CDbgEngine::UserCommandDisasm(CHAR* pCommand) {
 	DisasmAtAddr(dwAddress, dwCount);
 }
 
+
 //************************************
 // FullName:  CDbgEngine::DisasmAtAddr
 // Returns:   void
@@ -575,3 +596,102 @@ UINT CDbgEngine::DBG_Disasm(HANDLE hProcess, LPVOID lpAddress, PWCHAR pOPCode, P
 }
 
 
+//************************************
+// Method:    GetStackInfo
+// FullName:  CDbgEngine::GetStackInfo
+// Access:    public 
+// Returns:   BOOL
+// Qualifier:
+// Parameter: DWORD dwThreadId
+// Parameter: HANDLE hProcess
+// Function:  查看堆栈信息
+//************************************
+BOOL CDbgEngine::GetStackInfo(DWORD dwThreadId, HANDLE hProcess)
+{
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, NULL, dwThreadId);
+	CONTEXT ct = { CONTEXT_CONTROL };
+	GetThreadContext(hThread, &ct);
+	BYTE buff[512];
+	DWORD dwRead = 0;
+
+	if (!ReadProcessMemory(hProcess, (LPVOID)ct.Esp, buff, 512, &dwRead))
+	{
+		return FALSE;
+	}
+	printf("%-10s %-10s\n", "Addr", "Value");
+	for (int i = 0; i < 10; ++i){
+		printf("%08X   %08X\n", (DWORD)ct.Esp+i*4,((DWORD*)buff)[i]);
+	}
+	return TRUE;
+}
+
+//************************************
+// Method:    EnumModules
+// FullName:  CDbgEngine::EnumModules
+// Access:    public 
+// Returns:   BOOL
+// Qualifier:
+// Parameter: DWORD dwPid
+// Function:  枚举被调试进程模块信息
+//************************************
+BOOL CDbgEngine::EnumModules(DWORD dwPid)
+{
+	m_vecModule.clear();
+	//1.1打开进程
+	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwPid);
+	if (NULL == hProcess) {
+		return FALSE;
+	}
+	//1.2确定保存模块句柄的数组大小
+	HMODULE hModules[0x1] = { 0 };//模块数组
+	DWORD cbNeed = 0;//实际获取的大小
+	EnumProcessModulesEx(/*枚举进程模块*/
+		hProcess,//进程句柄
+		hModules,//模块句柄数组
+		sizeof(hModules),//模块句柄数组的大小
+		&cbNeed,//实际需要的数组大小
+		LIST_MODULES_ALL);//枚举模块的类型
+	//1.3获取模块句柄表
+	DWORD dwModCount = cbNeed / sizeof(HMODULE);//模块数量
+	HMODULE* pModBuf = new HMODULE[dwModCount];//保存模块句柄的缓存
+	EnumProcessModulesEx(/*枚举进程模块*/
+		hProcess,//进程句柄
+		pModBuf,//模块句柄数组
+		dwModCount * sizeof(HMODULE),//模块句柄数组的大小
+		&cbNeed,//实际需要的数组大小
+		LIST_MODULES_ALL);//枚举模块的类型
+	//2.枚举进程模块信息
+	//char szModuleName[0x200] = {0};
+	MODULEENTRY32 stcMod32 = { sizeof(MODULEENTRY32) };
+	MODULEINFO stcModInfo;
+	//3.分配vec空间
+	for (UINT i = 0; i < dwModCount; i++) {
+		GetModuleBaseName(hProcess, pModBuf[i], stcMod32.szModule, MAX_PATH);
+		GetModuleFileNameEx(hProcess, pModBuf[i], stcMod32.szExePath, MAX_PATH);
+		GetModuleInformation(hProcess, pModBuf[i], &stcModInfo, sizeof(MODULEINFO));
+		stcMod32.hModule = pModBuf[i];
+		stcMod32.modBaseAddr = (PBYTE)stcModInfo.lpBaseOfDll;
+		stcMod32.modBaseSize = stcModInfo.SizeOfImage;
+		stcMod32.th32ProcessID = dwPid;
+		m_vecModule.push_back(stcMod32);
+	}
+	CloseHandle(hProcess);
+	delete[] pModBuf;
+	return TRUE;
+}
+
+//************************************
+// Method:    PrintfModulesInfo
+// FullName:  CDbgEngine::PrintfModulesInfo
+// Access:    public 
+// Returns:   VOID
+// Qualifier:
+// Function:  输出保存的模块信息
+//************************************
+VOID CDbgEngine::PrintfModulesInfo()
+{
+	printf("%-10s\t%-10s\t%-10s\t%-10s\n", "模块名称", "加载基址","模块大小","模块路径");
+	for (MODULEENTRY32 &module : m_vecModule) {
+		wprintf(L"%s\t%08X\t%d\t%s\n", module.szModule, module.modBaseAddr, module.modBaseSize, module.szExePath);
+	}
+}

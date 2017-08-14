@@ -34,6 +34,9 @@
     <Filter Include="断点处理类\硬件断点">
       <UniqueIdentifier>{758dd662-58c8-46f0-9ee5-9ca2458becc4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="信息处理">
+      <UniqueIdentifier>{621e8d4e-ae7c-4990-bbe4-fba94b4575c4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -66,6 +69,9 @@
     <ClInclude Include="BmBp.h">
       <Filter>断点处理类\内存访问断点</Filter>
     </ClInclude>
+    <ClInclude Include="Info.h">
+      <Filter>信息处理</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -91,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="BmBp.cpp">
       <Filter>断点处理类\内存访问断点</Filter>
+    </ClCompile>
+    <ClCompile Include="Info.cpp">
+      <Filter>信息处理</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

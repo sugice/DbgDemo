@@ -8,10 +8,19 @@
 #include "LordPe.h"
 #include "BhBp.h"
 #include "BmBp.h"
+#include <TlHelp32.h>
 using std::string;
-
-
 using std::list;
+
+
+typedef struct _MyLOAD_DLL_DEBUG_INFO {
+	HANDLE hFile;
+	LPVOID lpBaseOfDll;
+	DWORD dwDebugInfoFileOffset;
+	DWORD nDebugInfoSize;
+	LPVOID lpImageName;
+	WORD fUnicode;
+} MyLOAD_DLL_DEBUG_INFO, *LPMyLOAD_DLL_DEBUG_INFO;
 
 #define NUMOFBPTYPE 3
 
@@ -50,7 +59,12 @@ public:
 
 	// u命令
 	void UserCommandDisasm(CHAR* pCommand);
-
+	//获取堆栈信息
+	BOOL GetStackInfo(DWORD dwThreadId, HANDLE hProcess);
+	//遍历被调试进程模块
+	BOOL EnumModules(DWORD dwPid);
+	//打印模块信息
+	VOID PrintfModulesInfo();
 private:
 	// 反汇编函数
 	void DisasmAtAddr(DWORD addr, DWORD dwCount = 10);
@@ -63,6 +77,8 @@ private:
 	LPDEBUG_EVENT m_pDbgEvt;
 private:
 	list<DWORD> m_bpAddrList[NUMOFBPTYPE];//保存主动设置的断点地址和断点类型的list
+	vector<MyLOAD_DLL_DEBUG_INFO> m_vecLoadDllInfo;
+	vector<MODULEENTRY32> m_vecModule;
 	DWORD m_bmAddr;//记录内存访问断点地址，只允许设置一个内存访问断点
 	CTfBp* m_pTfBp;//设置单步断点的类对象指针
 	CCcBp* m_pCcBp;//设置软件断点类对象指针
