@@ -128,18 +128,22 @@ VOID CBhBp::ReSetAllBhRwBreakPoint(DWORD dwThreadId)
 	if (ct.Dr0)
 	{
 		pDr7->L0 = 1;//启用该断点
+		SetThreadContext(hThread, &ct);
 	}
 	if (ct.Dr1)
 	{
 		pDr7->L1 = 1;//启用该断点
+		SetThreadContext(hThread, &ct);
 	}
 	if (ct.Dr2)
 	{
 		pDr7->L2 = 1;//启用该断点
+		SetThreadContext(hThread, &ct);
 	}
 	if (ct.Dr3)
 	{
 		pDr7->L3 = 1;//启用该断点
+		SetThreadContext(hThread, &ct);
 	}
 }
 
