@@ -163,7 +163,9 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 	// 根据异常类型分别处理，在这里要判断是不是自己引发的异常，不是直接返回就好
 	DWORD dwRet = DBG_EXCEPTION_NOT_HANDLED;
 	switch (de.u.Exception.ExceptionRecord.ExceptionCode) {
-		//软件断点
+	default:
+		break;
+	//软件断点
 	case EXCEPTION_BREAKPOINT:
 	{
 		BOOL isMyBp = FALSE;
@@ -182,7 +184,22 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 		
 		break;
 	}
-		//TF或硬件断点异常
+	//内存访问异常
+	case EXCEPTION_ACCESS_VIOLATION:
+	{
+		if ((DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress==m_bmAddr)//当内存访问异常地址等于设置的地址时
+		{
+			m_bmBp.RemoveBmBreakPoint(m_pi.hProcess);//内存断点命中，取消内存断点
+			dwRet = DBG_CONTINUE;
+			break;//跳出switch去接收用户输入
+		}
+		//异常地址不是设置的地址，取消内存断点，设置单步，然后直接返回函数，不接受用户输入
+		m_bmBp.RemoveBmBreakPoint(m_pi.hProcess);
+		m_pTfBp->SetTfBreakPoint(de.dwThreadId);
+		m_isBmTf = TRUE;//表示下一个单步断点是为了重设内存断点而设置
+		return DBG_CONTINUE;//直接返回，不接受用户输入
+	}
+	//TF或硬件断点异常
 	case EXCEPTION_SINGLE_STEP:
 	{
 		// 这个异常是为什么触发的？
@@ -225,7 +242,7 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 
 		if (m_isBhTf)//是为了恢复硬件断点而设置的TF断点
 		{
-			m_isBhTf = FALSE;////只有当下一次设置硬件断点时此值才被设为TRUE
+			m_isBhTf = FALSE;//只有当下一次设置硬件断点时此值才被设为TRUE
 			m_BhBp.ReSetAllBhRwBreakPoint(de.dwThreadId);//重设所有硬件断点
 
 			if (m_isUserTf)//用户选择单步走，接收用户输入
@@ -239,30 +256,17 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 		}
 		if (m_isBmTf)//是为了恢复内存断点而设置的TF
 		{
+			m_isBmTf = FALSE; //只有当下一次设置内存断点时此值才被设为TRUE
 			m_bmBp.ReSetBmBreakPoint(m_pi.hProcess);
 			m_notWaitUser = TRUE;//不接受用户操作，继续执行程序
 		}
+
 		m_isUserTf = FALSE;//只有当下一次用户设置TF断点此值才为真
 		dwRet = DBG_CONTINUE;
 		break;
 	}
-		//内存访问异常
-	case EXCEPTION_ACCESS_VIOLATION:
-	{
-		if ((DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress==m_bmAddr)//当内存访问异常地址等于设置的地址时
-		{
-			dwRet = DBG_CONTINUE;
-			break;//跳出switch去接收用户输入
-		}
-		//异常地址不是设置的地址，取消内存断点，设置单步，然后直接返回函数，不接受用户输入
-		m_bmBp.RemoveBmBreakPoint(m_pi.hProcess);
-		m_pTfBp->SetTfBreakPoint(de.dwThreadId);
-		m_isBmTf = TRUE;//表示下一个单步断点是为了重设内存断点而设置
-		return DBG_CONTINUE;//直接返回，不接受用户输入
 	}
-	default:
-		break;
-	}
+	//是否接受用户操作的关键点
 	if (m_notWaitUser)
 	{
 		m_notWaitUser = FALSE;
