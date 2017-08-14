@@ -142,3 +142,38 @@ VOID CBhBp::ReSetAllBhRwBreakPoint(DWORD dwThreadId)
 		pDr7->L3 = 1;//启用该断点
 	}
 }
+
+BOOL CBhBp::CheckDr6ForBhRwBreakPoint(DWORD dwThreadId)
+{
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, NULL, dwThreadId);
+	CONTEXT ct = { CONTEXT_DEBUG_REGISTERS };
+	GetThreadContext(hThread, &ct);//获取线程环境块
+	DBG_REG6* pDr6 = (DBG_REG6*)&ct.Dr6;
+	DBG_REG7* pDr7 = (DBG_REG7*)&ct.Dr7;
+	//检查DR6中的B0-B3位
+	if (pDr6->B0)
+	{
+		pDr7->L0 = 0;
+		SetThreadContext(hThread, &ct);
+		return TRUE;
+	}
+	if (pDr6->B1)
+	{
+		pDr7->L1 = 0;
+		SetThreadContext(hThread, &ct);
+		return TRUE;
+	}
+	if (pDr6->B2)
+	{
+		pDr7->L2 = 0;
+		SetThreadContext(hThread, &ct);
+		return TRUE;
+	}
+	if (pDr6->B3)
+	{
+		pDr7->L3 = 0;
+		SetThreadContext(hThread, &ct);
+		return TRUE;
+	}
+	return FALSE;
+}

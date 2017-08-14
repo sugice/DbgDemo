@@ -181,7 +181,7 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 		break;
 	}
 		//TF或硬件断点异常
-	case EXCEPTION_SINGLE_STEP: 
+	case EXCEPTION_SINGLE_STEP:
 	{
 		// 这个异常是为什么触发的？
 
@@ -193,14 +193,12 @@ DWORD CDbgEngine::OnException(DEBUG_EVENT& de) {
 
 		// 如果用户单步走（不管为了其它目的设没设TF断点），都应该break（如果为了其它目的有设置TF断点，应该先执行相应操作，再break），接收用户命令
 
-		for (auto each : m_bpAddrList[BH])
+		if (m_BhBp.CheckDr6ForBhRwBreakPoint(de.dwThreadId))//如果是硬件断点被触发
 		{
-			if (each == (DWORD)de.u.Exception.ExceptionRecord.ExceptionAddress)
-			{
-				m_pTfBp->SetTfBreakPoint(de.dwThreadId);// 设置1个单步
-				m_isBhTf = TRUE;//为了恢复硬件断点而设置的单步
-				goto WaitUser;//这里要直接跳出外层的switch，不然会错误的进入恢复硬件断点操作。
-			}
+			m_pTfBp->SetTfBreakPoint(de.dwThreadId);//设置一个单步
+			m_isBhTf = TRUE;//表示下一个单步是为了重设硬件断点
+			dwRet = DBG_CONTINUE;
+			goto WaitUser;//一定要跳出外层switch，进入等待用户命令的函数
 		}
 
 		if (m_isCcTf)//是为了恢复软件断点而设置的TF断点
@@ -453,7 +451,6 @@ void CDbgEngine::UserCommandB(CHAR* pCommand) {
 				}
 			}
 		}
-		m_bpAddrList[BH].push_back((DWORD)nAddr);//记录硬件断点
 		break;
 	}
 	case 'm':// bm内存断点
