@@ -12,7 +12,8 @@
 
 #include <Shlwapi.h>
 #pragma comment(lib,"Shlwapi.lib") 
-#include <Psapi.h>
+#include <Psapi.h>.
+
 
 
 #define DBGOUT(format,error) \
@@ -45,7 +46,7 @@ CDbgEngine::~CDbgEngine() {
 //************************************
 void CDbgEngine::DebugMain() {
 	//1.1	调试方式打开程序
-	WCHAR szPath[] = L"ConsoleApplication1.exe";
+	WCHAR szPath[] = L"CrackMe3.exe";
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
 	BOOL bStatus = CreateProcess(szPath, NULL, NULL, NULL, FALSE,
 		DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS | CREATE_NEW_CONSOLE,	//调试新建进程 | 拥有新控制台,不继承其父级控制台（默认）
@@ -410,9 +411,30 @@ VOID CDbgEngine::WaitforUserCommand() {
 			EnumModules(m_pi.dwProcessId);
 			PrintfModulesInfo();
 			break;
-		case 'd':
-			//UserCommandD();// dump
+		case 'i'://查看导入表信息
+		{
+			m_pLordPe->ImportTable();//解析导入表
+			PrintfImportDll();//输出导入表基本信息
+			printf("请输入dll名查看详细信息：");
+			WCHAR temp[MAX_PATH] = { 0 };
+			wscanf(L"%s", temp);
+			CString dllName = temp;
+			int i = 0;//计数
+			for (auto each:m_pLordPe->m_vecImportDescriptor)
+			{
+				if (each.Name==dllName)
+				{
+					break;
+				}
+				++i;
+			}
+			printf("%-10s\t%-10s\n", "序号", "名称");
+			for (auto& each : m_pLordPe->m_vvImportFunInfo[i])
+			{
+				wprintf(L"%08X\t%s\n", each.Ordinal, each.Name);
+			}
 			break;
+		}
 		case 'o'://在OEP处下断,并让程序执行到OEP处
 			m_pCcBp->SetBsBreakPoint(m_dwBaseAddr + m_dwOep, m_pi.hProcess);
 			m_bpAddrList[CC].push_back(m_dwBaseAddr + m_dwOep);
@@ -775,6 +797,16 @@ VOID CDbgEngine::PrintfModulesInfo()
 	printf("%-10s\t%-10s\t%-10s\t%-10s\n", "模块名称", "加载基址","模块大小","模块路径");
 	for (MODULEENTRY32 &module : m_vecModule) {
 		wprintf(L"%s\t%08X\t%d\t%s\n", module.szModule, module.modBaseAddr, module.modBaseSize, module.szExePath);
+	}
+}
+
+VOID CDbgEngine::PrintfImportDll()
+{
+	printf("%-10s\t%-10s\t%-10s\t%-10s\t%-10s\n", "DLL名称", "INT RVA", "INT偏移", "IAT RVA", "IAT偏移");
+	for (MY_IMPORT_DESCRIPTOR &importDescriptor : m_pLordPe->m_vecImportDescriptor)
+	{
+		wprintf(L"%s\t%08X\t%08X\t%08X\t%08X\n", importDescriptor.Name, importDescriptor.OriginalFirstThunk, 
+		importDescriptor.OffsetOriginalFirstThunk, importDescriptor.FirstThunk, importDescriptor.OffsetFirstThunk);
 	}
 }
 

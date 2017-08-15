@@ -67,6 +67,8 @@ public:
 	//打印模块信息
 	VOID PrintfModulesInfo();
 
+	VOID PrintfImportDll();
+
 	//判断条件断点是否命中
 	BOOL IsConditionBreakPoint(DWORD dwThreadId);
 private:
