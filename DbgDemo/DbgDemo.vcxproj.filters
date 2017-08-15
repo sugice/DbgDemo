@@ -40,6 +40,9 @@
     <Filter Include="检测任务管理器">
       <UniqueIdentifier>{d4fe4319-3594-4af8-8431-bdc02d4bab47}</UniqueIdentifier>
     </Filter>
+    <Filter Include="汇编">
+      <UniqueIdentifier>{7697b207-66cd-4a14-abec-dd813be7b973}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -78,6 +81,9 @@
     <ClInclude Include="FindTaskmgr.h">
       <Filter>检测任务管理器</Filter>
     </ClInclude>
+    <ClInclude Include="Compilation.h">
+      <Filter>汇编</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -109,6 +115,9 @@
     </ClCompile>
     <ClCompile Include="FindTaskmgr.cpp">
       <Filter>检测任务管理器</Filter>
+    </ClCompile>
+    <ClCompile Include="Compilation.cpp">
+      <Filter>汇编</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -142,6 +142,7 @@
     <ClInclude Include="BhBp.h" />
     <ClInclude Include="BmBp.h" />
     <ClInclude Include="CcBp.h" />
+    <ClInclude Include="Compilation.h" />
     <ClInclude Include="DbgEngine.h" />
     <ClInclude Include="FindTaskmgr.h" />
     <ClInclude Include="Info.h" />
@@ -155,6 +156,7 @@
     <ClCompile Include="BhBp.cpp" />
     <ClCompile Include="BmBp.cpp" />
     <ClCompile Include="CcBp.cpp" />
+    <ClCompile Include="Compilation.cpp" />
     <ClCompile Include="DbgDemo.cpp" />
     <ClCompile Include="DbgEngine.cpp" />
     <ClCompile Include="FindTaskmgr.cpp" />
