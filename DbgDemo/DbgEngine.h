@@ -9,6 +9,7 @@
 #include "BhBp.h"
 #include "BmBp.h"
 #include <TlHelp32.h>
+#include "FindTaskmgr.h"
 using std::string;
 using std::list;
 
@@ -87,6 +88,7 @@ private:
 	CCcBp* m_pCcBp;//设置软件断点类对象指针
 	CBhBp m_BhBp;//设置硬件断点类对象
 	CBmBp m_bmBp;//设置内存断点类对象
+	CFindTaskmgr m_findTaskmgr;//检测任务管理器是否打开的类
 
 	CLordPe* m_pLordPe;//解析pe类指针
 

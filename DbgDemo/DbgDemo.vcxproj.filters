@@ -72,6 +72,9 @@
     <ClInclude Include="Info.h">
       <Filter>信息处理</Filter>
     </ClInclude>
+    <ClInclude Include="FindTaskmgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -100,6 +103,9 @@
     </ClCompile>
     <ClCompile Include="Info.cpp">
       <Filter>信息处理</Filter>
+    </ClCompile>
+    <ClCompile Include="FindTaskmgr.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -60,6 +60,10 @@ void CDbgEngine::DebugMain() {
 		DBGOUT("%s\n", "将文件读取进内存失败！");
 	}
 	m_dwOep = m_pLordPe->GetOep();//获取被调试进程OEP
+
+	//监测任务管理器，一旦任务管理器被打开就注入任务管理器
+	m_findTaskmgr.CreatDetectionThread();
+
 	//1.2	初始化调试事件结构体
 	DEBUG_EVENT DbgEvent = { 0 };
 	DWORD dwState = DBG_EXCEPTION_NOT_HANDLED;
