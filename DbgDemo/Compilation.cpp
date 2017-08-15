@@ -1,11 +1,10 @@
 #include "stdafx.h"
 #include "Compilation.h"
 
-//1. 包含头文件
-#include "keystone/keystone.h"
 #include "DbgEngine.h"
-
+//1. 包含头文件
 //2. 包含静态库
+#include "keystone/keystone.h"
 #pragma comment (lib,"keystone/x86/keystone_x86.lib")
 
 CCompilation::CCompilation()
