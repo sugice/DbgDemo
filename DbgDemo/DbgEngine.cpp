@@ -46,9 +46,9 @@ CDbgEngine::~CDbgEngine() {
 //************************************
 void CDbgEngine::DebugMain() {
 	//1.1	调试方式打开程序
-	WCHAR szPath[] = L"CrackMe3.exe";
+	WCHAR m_szPath[] = L"CrackMe3.exe";
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
-	BOOL bStatus = CreateProcess(szPath, NULL, NULL, NULL, FALSE,
+	BOOL bStatus = CreateProcess(m_szPath, NULL, NULL, NULL, FALSE,
 		DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS | CREATE_NEW_CONSOLE,	//调试新建进程 | 拥有新控制台,不继承其父级控制台（默认）
 		NULL, NULL, &si, &m_pi);
 	if (!bStatus) {
@@ -56,7 +56,7 @@ void CDbgEngine::DebugMain() {
 		return;
 	}
 	//将文件读取进本程序内存，以便解析PE
-	if (!m_pLordPe->GetDosHead(szPath))
+	if (!m_pLordPe->GetDosHead(m_szPath))
 	{
 		DBGOUT("%s\n", "将文件读取进内存失败！");
 	}
@@ -432,6 +432,41 @@ VOID CDbgEngine::WaitforUserCommand() {
 			for (auto& each : m_pLordPe->m_vvImportFunInfo[i])
 			{
 				wprintf(L"%08X\t%s\n", each.Ordinal, each.Name);
+			}
+			break;
+		}
+		case 'e'://查看导出表信息
+		{
+			EnumModules(m_pi.dwProcessId);
+			PrintfModulesInfo();
+			printf("请输入dll名查看其导出表：");
+			WCHAR temp[MAX_PATH] = { 0 };
+			wscanf(L"%s", temp);
+			CString dllName = temp;
+			CString strModuleName;
+			for (auto each : m_vecModule)
+			{
+				if (each.szModule == dllName)
+				{
+					strModuleName = each.szExePath;
+					break;
+				}
+			}
+			m_pLordPe->GetDosHead(strModuleName);
+			m_pLordPe->ExportTable();
+
+			printf("名称：%s\n", m_pLordPe->m_my_im_ex_di.name);
+			printf("序号基数：%08X\n", m_pLordPe->m_my_im_ex_di.Base);
+			printf("函数数量：%08X\n", m_pLordPe->m_my_im_ex_di.NumberOfFunctions);
+			printf("函数名数量%08X\n", m_pLordPe->m_my_im_ex_di.NumberOfNames);
+			printf("地址表RVA%08X\n", m_pLordPe->m_my_im_ex_di.AddressOfFunctions);
+			printf("名称表RVA%08X\n", m_pLordPe->m_my_im_ex_di.AddressOfNames);
+			printf("序号表RVA%08X\n", m_pLordPe->m_my_im_ex_di.AddressOfNameOrdinals);
+
+			printf("%-10s\t%-10s\t%-10s\t%-10s\n", "导出序号", "RVA", "偏移", "函数名");
+			for (EXPORTFUNINFO &each : m_pLordPe->m_vecExportFunInfo)
+			{
+				wprintf(L"%08X\t%08X\t%08X\t%s\n", each.ExportOrdinals, each.FunctionRVA, each.FunctionOffset, each.FunctionName);
 			}
 			break;
 		}

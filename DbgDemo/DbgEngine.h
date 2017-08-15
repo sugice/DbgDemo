@@ -82,6 +82,8 @@ private:
 	// 新一次的调试循环开始的时候重新赋值
 	LPDEBUG_EVENT m_pDbgEvt;
 private:
+	WCHAR m_szPath[MAX_PATH];
+
 	list<DWORD> m_bpAddrList[NUMOFBPTYPE];//保存主动设置的断点地址和断点类型的list
 	vector<MyLOAD_DLL_DEBUG_INFO> m_vecLoadDllInfo;
 	vector<MODULEENTRY32> m_vecModule;

@@ -51,7 +51,7 @@ public:
 	~CLordPe();
 	BOOL GetDosHead(LPCTSTR filePath);
 	DWORD GetOep();
-	//void ExportTable();
+	void ExportTable();
 	void ImportTable();
 	DWORD RVAToOffset(IMAGE_DOS_HEADER* pDos, DWORD dwRva);
 public:
