@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "detours/detours.h"
 #include <TlHelp32.h>
+#include <tchar.h>
 
 #ifdef _WIN64
 #pragma comment(lib,"detours\\lib.X64\\\detours.lib")
@@ -16,7 +17,7 @@ typedef HANDLE (WINAPI *FnOpenProcess)(
 );
 
 FnOpenProcess g_pfnOpenProcess;
-TCHAR g_processName[MAX_PATH];
+TCHAR g_processName[MAX_PATH] = { _T("DbgDemo.exe") };
 
 HANDLE WINAPI MyOpenProcess(
 	_In_ DWORD dwDesiredAccess,
@@ -30,7 +31,7 @@ HANDLE WINAPI MyOpenProcess(
  	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
  	PROCESSENTRY32 procInfo = { sizeof(PROCESSENTRY32)};
  	Process32First(hSnap, &procInfo);
-	
+
 	// 进程遍历的代码还有bug
  	do 
  	{
@@ -49,23 +50,12 @@ HANDLE WINAPI MyOpenProcess(
 							dwProcessId);
 }
 
-extern"C" void _setInt();
+//extern"C" void _setInt();
 
 // 对OpenProcess进行HOOK的函数
 extern"C" _declspec(dllexport) void hook()
 {
 	//_setInt();// 手工构造一个软件断点,只用于调试
-
-	HANDLE hFileMap = OpenFileMapping(GENERIC_READ, FALSE, L"Global\\HOOKTASKMGR");
-	LPVOID pProcessName;
-	pProcessName = MapViewOfFile(hFileMap, 
-							 FILE_MAP_READ, 
-							 0, 0, 
-							 4096);
-	wcscpy_s(g_processName, (WCHAR*)pProcessName);
-	UnmapViewOfFile(pProcessName);
-	CloseHandle(hFileMap);
-
 	g_pfnOpenProcess = &OpenProcess;
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());

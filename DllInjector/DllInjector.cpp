@@ -4,12 +4,18 @@
 #include "stdafx.h"
 #include <windows.h>
 #include <locale.h>
+#include<fstream>
+#include<iostream>  
+#include <string>
+#include <Shlwapi.h>
+#pragma comment(lib,"Shlwapi.lib") 
+using std::string;
+using std::ifstream;
 
 int main()
 {
 	// 设置控制台的字符集,为了避免Unicode的中文乱码
-	setlocale(LC_ALL, "chs");
-
+	//setlocale(LC_ALL, "chs");
 
 	// 假设有一个DLL , 在DLL中有HOOK任务管理器的
 	// OpenProcess函数的代码. 并且有保护指定进程
@@ -23,23 +29,29 @@ int main()
 	// 3. 创建一个远程线程, 将线程的回调函数设置为LoadLibrary
 	//    将线程的附加参数设置为在任务管理器进程内存中的
 	//    DLL文件路径.
+
+	string buf;
+	ifstream infile;
+	infile.open(_T("..\\DbgDemo\\TaskmgrPID.txt"));
+	if (!infile) {
+		return 0;
+	}
+	//逐行读取直到读取完毕
+	getline(infile, buf);
+	infile.close();
 	DWORD dwPid = 0;
-	printf("请输入一个任务管理器的PID: ");
-	scanf_s("%d", &dwPid);
+	dwPid = StrToIntA(buf.c_str());
+
 
 	// 打开任务管理器进程.
-	HANDLE hProc = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE,
-		FALSE,
-		dwPid);
+	HANDLE hProc = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE,FALSE,dwPid);
 	if (hProc == INVALID_HANDLE_VALUE)
 	{
 		printf("打开失败,可能是权限不够\n");
 		return 0;
 	}
 
-	char dllPath[MAX_PATH] = "D:\\Code\\HookOpenProcess.dll";
-	//printf("输入要注入的DLL路径: ");
-	//gets_s(dllPath, MAX_PATH);
+	char dllPath[MAX_PATH] = "D:\\Code\\DbgDemo\\x64\\Debug\\HookOpenProcess.dll";
 
 	// 2. 将dll路径写入到任务管理器的进程内存中.
 	LPVOID pBuff = NULL;
@@ -62,21 +74,6 @@ int main()
 		strlen(dllPath) + 1, /*缓冲区的字节数*/
 		&dwWrite/*函数实际写入的字节数*/);
 
-
-	// 创建文件映射,准本进行进程间的通讯
-	HANDLE hFilMap = CreateFileMapping(INVALID_HANDLE_VALUE,
-		0,
-		PAGE_READWRITE,
-		0,
-		4096,
-		L"Global\\HOOKTASKMGR");
-	LPVOID pProcessName = 0;
-	pProcessName = MapViewOfFile(hFilMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 4096);
-	printf("请输入要保存的进程的名字: ");
-	getchar();
-	_getws_s((wchar_t*)pProcessName, MAX_PATH);
-
-
 	// 4. 创建远程线程
 	//    目的: 为了在远程进程中调用LoadLibrary
 	HANDLE hThread = INVALID_HANDLE_VALUE;
@@ -93,9 +90,6 @@ int main()
 
 	// 释放远程进程的空间.
 	VirtualFreeEx(hProc, pBuff, 0, MEM_RELEASE);
-	UnmapViewOfFile(pProcessName);
-	CloseHandle(hFilMap);
 
 	return 0;
 }
-

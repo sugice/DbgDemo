@@ -60,18 +60,24 @@ BOOL CFindTaskmgr::OpenDllInjector()
 				sprintf(temp, "%d", stcPe32.th32ProcessID);
 				if (!WriteTOFile(L"TaskmgrPID.txt", temp))
 				{
-					-------------------------------
+					DBGOUT("%s\n", "将任务管理器PID写入文件失败！");
 				}
-				//STARTUPINFO si = { sizeof(STARTUPINFO) };
-				//PROCESS_INFORMATION pi;
-				//if (CreateProcess(L"DllInjector.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-				//{
-				//	return TRUE;
-				//}
-				//else
-				//{
-				//	return FALSE;
-				//}
+				STARTUPINFO si = { sizeof(STARTUPINFO) };
+				PROCESS_INFORMATION pi;
+				
+				// 3. 以管理员权限重新打开进程
+				SHELLEXECUTEINFO sei = { sizeof(SHELLEXECUTEINFO) };
+				sei.lpVerb = L"runas";      // 请求提升权限
+				sei.lpFile = L"..\\x64\\Debug\\DllInjector.exe"; // 可执行文件路径
+				sei.lpParameters = NULL;          // 不需要参数
+				sei.nShow = SW_SHOWNORMAL; // 正常显示窗口
+				//以管理员权限打开注入器进程
+				if (ShellExecuteEx(&sei)){
+					return TRUE;
+				}
+				else{
+					return FALSE;
+				}
 			}
 		} while (Process32Next(hProcessSnap, &stcPe32));
 		CloseHandle(hProcessSnap);
@@ -102,7 +108,7 @@ BOOL CFindTaskmgr::WriteTOFile(WCHAR* strPath, char* szContext)
 	szContext[size + 1] = '\n';
 	szContext[size + 2] = '\0';
 	// 设置文件读写位置
-	SetFilePointer(hFile, 0, 0, FILE_END);
+	SetFilePointer(hFile, 0, 0, FILE_BEGIN);
 	// 写入文件.
 	DWORD dwWrite = 0;
 	WriteFile(hFile,

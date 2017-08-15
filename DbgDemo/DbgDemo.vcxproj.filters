@@ -37,6 +37,9 @@
     <Filter Include="信息处理">
       <UniqueIdentifier>{621e8d4e-ae7c-4990-bbe4-fba94b4575c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="检测任务管理器">
+      <UniqueIdentifier>{d4fe4319-3594-4af8-8431-bdc02d4bab47}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -73,7 +76,7 @@
       <Filter>信息处理</Filter>
     </ClInclude>
     <ClInclude Include="FindTaskmgr.h">
-      <Filter>头文件</Filter>
+      <Filter>检测任务管理器</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -105,7 +108,7 @@
       <Filter>信息处理</Filter>
     </ClCompile>
     <ClCompile Include="FindTaskmgr.cpp">
-      <Filter>源文件</Filter>
+      <Filter>检测任务管理器</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
