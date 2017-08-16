@@ -1,9 +1,10 @@
 #pragma once
+#include <windows.h>
 
 class CCompilation
 {
 public:
 	CCompilation();
 	~CCompilation();
-	bool GetOpcode(unsigned char* opcode, size_t& nOpcodeSize, int& nAddr);
+	bool GetOpcode(HANDLE hProcess);
 };

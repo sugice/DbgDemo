@@ -391,24 +391,14 @@ VOID CDbgEngine::WaitforUserCommand() {
 			break;
 		case 's'://插入机器码
 		{
-			unsigned char szOpcode[1024];//汇编出来的机器码
+			unsigned char* szOpcode = NULL;//汇编出来的机器码
 			size_t nOpcodeSize;//输出的opcode字节数
 			int nAddr;//要插入指令的首地址
-			m_compilation.GetOpcode(szOpcode, nOpcodeSize,nAddr);
-			DWORD dwSize = 0;//实际写入的字节数
-			//修改内存分页属性，改为可读可写
-			DWORD dwOldProtect;
-			VirtualProtectEx(m_pi.hProcess, (LPVOID)nAddr, nOpcodeSize, PAGE_READWRITE, &dwOldProtect);
-			//写入一个字节，\xcc就是int3指令的机器码
-			BYTE cc = '\xcc';
-			if (!WriteProcessMemory(m_pi.hProcess, (LPVOID)nAddr, szOpcode, nOpcodeSize, &dwSize))
+			if (!m_compilation.GetOpcode(m_pi.hProcess))
 			{
-				//将修改过的内存分页属性改回去
-				VirtualProtectEx(m_pi.hProcess, (LPVOID)nAddr, nOpcodeSize, dwOldProtect, &dwOldProtect);
-				DBGOUT("%s\n", "写入opcode失败！");
+				DBGOUT("%s\n", "写入汇编指令失败！");
 			}
-			//将修改过的内存分页属性改回去
-			VirtualProtectEx(m_pi.hProcess, (LPVOID)nAddr, nOpcodeSize, dwOldProtect, &dwOldProtect);
+			break;
 		}
 		case 't':// 单步F7
 			m_pTfBp->SetTfBreakPoint(m_pDbgEvt->dwThreadId);
@@ -496,7 +486,6 @@ VOID CDbgEngine::WaitforUserCommand() {
 			m_bpAddrList[CC].push_back(m_dwBaseAddr + m_dwOep);
 			return;
 		default:
-			printf("请输入正确的指令：\n");
 			break;
 		}
 	}

@@ -16,7 +16,7 @@ CCompilation::~CCompilation()
 {
 }
 
-bool CCompilation::GetOpcode(unsigned char* opcode, size_t& nOpcodeSize, int& nAddr)
+bool CCompilation::GetOpcode(HANDLE hProcess)
 {
 	ks_engine *pengine = NULL;
 	if (KS_ERR_OK != ks_open(KS_ARCH_X86, KS_MODE_32, &pengine)) {
@@ -30,12 +30,14 @@ bool CCompilation::GetOpcode(unsigned char* opcode, size_t& nOpcodeSize, int& nA
 	char asmCode[MAX_INPUT] = { 0 };
 	printf("请输入需要插入的汇编指令：");
 	gets_s(asmCode, MAX_INPUT);
+	int nAddr;//要插入汇编指令的首地址
 	printf("请输入需要插入指令的首地址：");
-	scanf("%X", nAddr);
+	scanf("%x", &nAddr);
 
-	opcode = NULL; // 汇编得到的opcode的缓冲区首地址
+	unsigned char* opcode = NULL; // 汇编得到的opcode的缓冲区首地址
 	int nRet = 0; // 保存函数的返回值，用于判断函数是否执行成功
 	size_t stat_count = 0; // 保存成功汇编的指令的条数
+	size_t nOpcodeSize = 0;//汇编出来的opcode字节数
 
 	nRet = ks_asm(pengine, /* 汇编引擎句柄，通过ks_open函数得到*/
 		asmCode, /*要转换的汇编指令*/
@@ -53,8 +55,18 @@ bool CCompilation::GetOpcode(unsigned char* opcode, size_t& nOpcodeSize, int& nA
 		printf("错误信息：%s\n", ks_strerror(ks_errno(pengine)));
 		return false;
 	}
-
-	printf("一共转换了%d条指令\n", stat_count);
+	//修改内存分页属性，改为可读可写
+	DWORD dwOldProtect;
+	VirtualProtectEx(hProcess, (LPVOID)nAddr, nOpcodeSize, PAGE_READWRITE, &dwOldProtect);
+	DWORD dwSize = 0;//实际写入的字节数
+	if (!WriteProcessMemory(hProcess, (LPVOID)nAddr, opcode, nOpcodeSize, &dwSize))
+	{
+		//将修改过的内存分页属性改回去
+		VirtualProtectEx(hProcess, (LPVOID)nAddr, nOpcodeSize, dwOldProtect, &dwOldProtect);
+		return false;
+	}
+	//将修改过的内存分页属性改回去
+	VirtualProtectEx(hProcess, (LPVOID)nAddr, nOpcodeSize, dwOldProtect, &dwOldProtect);
 	// 释放空间
 	ks_free(opcode);
 	// 关闭句柄
